@@ -1,0 +1,179 @@
+---
+title: "Disease Models 1"
+author: "LRA"
+date: "4/13/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(TMB)
+library(glmmTMB)
+library(bbmle)
+library(DHARMa)
+library(patchwork)
+```
+
+## Modeling seagrass wasting disease
+
+Here, I modeled seagrass wasting disease using a GLMM hurdle model approach.
+
+Underlying data were from the 2019 NSF surveys. 3702 individual blades were scanned for disease prevalence and severity.
+
+Explanatory factors were Tidal Height, Shoot Density, and Blade Area. From earlier work in the SJI, we would expect that disease prevalence and severity would increase with larger blade areas and greater shoot densities. 
+
+Random effects were MeadowId (site within region). I also looked at effect of grouping by region.
+
+*Note, this markdown file doesn't include all details of the model selection and validation process, for simplicity in sharing results
+
+```{r data, echo=FALSE}
+# Read in data - all at the blade level, EELISA outputs for disease
+bladeWD <- read.csv("input data/bladeWD.csv")
+bladeWD <- bladeWD[,c("Prevalence","Severity","BladeArea","DensityShoots","TidalHeight","Lat","SampleId","Region","SiteCode")]
+bladeWD$sBladeArea <- scale(bladeWD$BladeArea,center=TRUE,scale=TRUE)
+bladeWD$sDensityShoots <- scale(bladeWD$DensityShoots,center=TRUE,scale=TRUE)
+bladeWD$MeadowId <- paste(bladeWD$Region,bladeWD$SiteCode,sep=".")
+```
+
+```{r hurdleI, echo=FALSE}
+# Fit the first part of the hurdle model (predict prevalence from full data set)
+fit_prev <- glmmTMB(Prevalence~sBladeArea+sDensityShoots+TidalHeight+(1|MeadowId),
+                  data=bladeWD,
+                  family=binomial(link="logit"))
+summary(fit_prev)
+```
+The first part of the model shows that Blade Area is a significant predictor of disease status. 
+Tidal Height and Shoot Density were not significant predictors. 
+
+Note, the predictors are centered and scaled here (for each value, the mean is subtracted and then the difference is divided by one standard deviation). Scaling prevents numerical issues with model convergence with predictors of very different units. Therefore, to interpret the model output, a coefficient of 0.5 for a predictor means an increase of 0.5 in the response variable for every unit of SD in the predictor. E.g. here for Blade Area, the coefficient is 0.22; if Blade Area increases by 1 SD, the probability of disease increases by 0.22.
+
+Second note, the model is fitted with MeadowId as the random (grouping) effect. Differences between meadows were greater than differences between regions.
+
+```{r hurdleII, echo = FALSE}
+# Fit the second part of the hurdle model (predict severity using only diseased blades)
+diseased <- subset(bladeWD,Prevalence==1)
+fit_sev <- glmmTMB(Severity~sBladeArea+sDensityShoots+TidalHeight+(1|MeadowId),
+                   data=diseased,
+                   family=beta_family(link = "logit"),
+                   dispformula = ~Region)
+summary(fit_sev)
+```
+Second part of the model shows that Blade Area is signiciant but p-value is fairly large - esp for GLMM.
+Tidal Height and Shoot Density were agian not significant.
+
+```{r sev, echo=FALSE}
+# Plot predicted severity vs observed severity at the meadow scale
+pred2 <-  data.frame(MeadowId=diseased[,'MeadowId'],Obs=diseased[,"Severity"])
+pred2$fit <-   predict(fit_sev,type='link')
+sever <-  pred2 %>% group_by(MeadowId) %>% summarise_all(mean)
+sever <- separate(sever,MeadowId,into=c("Region","SiteCode"),sep="[.]",remove=FALSE)
+sever$Region <- ordered(sever$Region,levels=c("AK","BC","WA","OR","BB","SD"))
+sever$btmean <-  plogis(sever$fit)
+
+ggplot(data=sever,aes(x=Obs,y=btmean,color=Region))+
+  geom_abline(intercept=0,slope=1,linetype='dashed')+
+  geom_point()+
+  xlab("Observed Severity (%)")+
+  ylab("Predicted Severity (%)")+
+  labs(title="Site-level mean severity")+
+  theme_bw()
+```
+
+## Model predictions
+
+These are predictions looking at how probability of disease and disease severity behave with increasing blade area.
+
+In these plots, Shoot Density is held constant at the mean value (311 shoots per m2) and Tidal Height is held at Lower.
+Since those predictors were not significant in the models, the constant values shouldn't matter.
+
+```{r prev_plot, echo=FALSE}
+jvalues <- with(bladeWD, seq(from = min(sBladeArea), to = max(sBladeArea), length.out = 100))
+b.data <- distinct(bladeWD,MeadowId,.keep_all=TRUE)
+pred.values <- lapply(jvalues,function(j){
+  b.data$sBladeArea <- j
+  b.data$sDensityShoots <- rep.int(-0.2839,nrow(b.data))
+  b.data$TidalHeight <- rep.int('L',nrow(b.data))
+  predict(fit_prev,newdata=b.data,type='response')
+})
+plot.pred.values <- t(sapply(pred.values,function(x){
+  c(M=mean(x),quantile(x,c(0.025,0.975)))
+}))
+plot.pred.values <- as.data.frame(cbind(plot.pred.values,jvalues))
+colnames(plot.pred.values) <- c("PredictedProbability","Lower","Upper","sBladeArea")
+plot.pred.values$LogPred <- plogis(plot.pred.values$PredictedProbability)
+plot.pred.values$BladeArea <- (plot.pred.values$sBladeArea*sd(bladeWD$BladeArea))+mean(bladeWD$BladeArea)
+
+ggplot(plot.pred.values,aes(x=BladeArea))+
+  #geom_point(data=bladeWD,aes(x=BladeArea,y=Prevalence),color="grey")+
+  geom_line(aes(y=PredictedProbability))+ylim(c(0,1))+
+  geom_line(aes(y=Upper),linetype="dashed")+
+  geom_line(aes(y=Lower),linetype="dashed")+
+  xlab("Blade Area (cm2)")+
+  ylab("Probability of being diseased")+
+  labs(title="Prevalence predictions")+
+  theme_bw()
+
+```
+
+The black line shows the means of simulated model output, and the dashed lines show 95% confidence intervals. From the plot, we can see that our smallest blades (1 cm2), have about a 50% chance of being infected, whereas the largest blades (250 cm2) have about a 75% chance of being infected. But the 95% CI is huge. Blade Area isn't a great predictor of disease at the blade level.
+
+```{r dist, echo=FALSE, warning=FALSE}
+# # For context, include the histograms of prevalence 0 and 1 vs blade area
+# a1 <- ggplot(data = bladeWD[bladeWD$Prevalence == 1, ],aes(x=BladeArea))+
+#   geom_histogram(binwidth = 4)+
+#   xlab("Blade Area (cm2)")+
+#   ylab("Count")+
+#   labs(title="Diseased blades")+
+#   scale_y_continuous(limits=c(0,300))+
+#   scale_x_continuous(limits=c(0,275))+
+#   theme_bw()
+# bladeWD$Prevalence <- as.factor(bladeWD$Prevalence)
+# b1 <- ggplot(data = bladeWD,aes(x=BladeArea,fill=Prevalence))+
+#   geom_histogram(binwidth=4)+
+#   facet_wrap(~Region)+
+#   xlab("Blade Area (cm2)")+
+#   ylab("Count")+
+#   labs(title="Healthy blades")+
+#   #scale_y_continuous(limits=c(0,300))+
+#   #scale_x_continuous(limits=c(0,275))+
+#   theme_bw()
+# b1
+# a1+b1 
+# Save all this for another time perhaps
+```
+
+
+```{r sev_plot, echo=FALSE}
+kvalues <- with(diseased, seq(from = min(sBladeArea), to = max(sBladeArea), length.out = 100))
+sev.values <- lapply(kvalues,function(j){
+  b.data$sBladeArea <- j
+  b.data$sDensityShoots <- rep.int(-0.275198,nrow(b.data))
+  b.data$TidalHeight <- rep.int('L',nrow(b.data))
+  predict(fit_sev,newdata=b.data,type='response')
+})
+plot.sev.values <- t(sapply(sev.values,function(x){
+  c(M=mean(x),quantile(x,c(0.025,0.975)))
+}))
+
+plot.sev.values <- as.data.frame(cbind(plot.sev.values,kvalues))
+colnames(plot.sev.values) <- c("PredictedSeverity","Lower","Upper","sBladeArea")
+plot.sev.values$BladeArea <- (plot.sev.values$sBladeArea*sd(diseased$BladeArea))+mean(diseased$BladeArea)
+
+ggplot(plot.sev.values,aes(x=BladeArea))+
+  geom_point(data=diseased,aes(x=BladeArea,y=Severity),color="grey")+
+  geom_line(aes(y=PredictedSeverity))+
+  #ylim(c(0,0.3))+
+  geom_line(aes(y=Upper),linetype='dashed')+
+  geom_line(aes(y=Lower),linetype='dashed')+
+  xlab("Blade Area (cm2)")+
+  ylab("Severity (%)")+
+  labs(title="Severity predictions")+
+  theme_bw()
+```
+
+Again the black line indicates the model prediction and the dashed lines show the model 95% CI. Grey points are the underlying data. There's a slight decline in severity moving from smaller to larger blades, which is the opposite trend as for Prevalence. Although, it's not totally unreasonable to think that larger blades are more likely to be infected but have less sever infections, just because of the larger blade area. 
+
+Again, the data are very noisy due to high level of spread for individual blades. 
+
+At this point, my plan is to move on to modeling at the transect level, including some temperature data from loggers and satellite imagery. 
