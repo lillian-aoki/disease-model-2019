@@ -47,7 +47,9 @@ I used beta regression to model Prevalence as the proportion of infected blades 
 
 During initial model selection, the best model had Blade Area, Spring Warming, and Region as predictors. All were significant predictors. Note, "sSlope" is the Spring Warming effect (scaled slope of temp increase in Spring).
 
-Post-hoc contrasts showed that the Regions grouped into "Super Regions" - AK and BC were in one group (not significantly different form each other) and WA, OR, SD were in another group (not significantly different from each other and different from the AK/BC group). These Super Regions followed geographic patterns, so I re-grouped the meadows as Northern (AK and BC) and Southern (WA, OR, SD). Note, BB sites were excluded for lack of temperature data. 
+Post-hoc contrasts showed that the Regions grouped into "Super Regions" 
+
+AK and BC were in one group (not significantly different form each other) and WA, OR, SD were in another group (not significantly different from each other and different from the AK/BC group). These Super Regions followed geographic patterns, so I re-grouped the meadows as Northern (AK and BC) and Southern (WA, OR, SD). Note, BB sites were excluded for lack of temperature data. 
 
 ```{r prev1, echo=FALSE}
 fit_prev <- glmmTMB(PrevalenceMean~sBladeArea+sSlope+Region,
@@ -70,6 +72,7 @@ modelparm.glmmTMB <- function (model, coef. = function(x) fixef(x)[[component]],
 g1 <- glht(fit_prev,linfct=mcp(Region="Tukey"))
 summary(g1)
 ```
+
 
 With the new Super Region grouping, I re-ran the model with the same other effects (Blade Area and Spring Warming)
 
@@ -115,6 +118,7 @@ Np <- ggplot(northern,aes(x=Slope))+
   geom_line(aes(y=LL),linetype="dashed")+
   geom_line(aes(y=UL),linetype="dashed")+
   geom_point(data=sp[sp$SuperRegion=="Northern",],aes(x=slope,y=PrevalenceMean))+
+  ylim(c(-0.003,1.01))+
   theme_bw()+
   xlab("Slope of spring warming (ºC per week)")+
   ylab("Wasting disease prevalence (% infected)")+
@@ -126,6 +130,7 @@ Sp <- ggplot(southern,aes(x=Slope))+
   geom_line(aes(y=LL),linetype="dashed")+
   geom_line(aes(y=UL),linetype="dashed")+
   geom_point(data=sp[sp$SuperRegion=="Southern",],aes(x=slope,y=PrevalenceMean))+
+  ylim(c(-0.003,1.01))+
   theme_bw()+
   xlab("Slope of spring warming (ºC per week)")+
   ylab("Wasting disease prevalence (% infected)")+

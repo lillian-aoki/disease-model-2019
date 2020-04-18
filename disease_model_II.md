@@ -37,7 +37,8 @@ Note, “sSlope” is the Spring Warming effect (scaled slope of temp
 increase in Spring).
 
 Post-hoc contrasts showed that the Regions grouped into “Super Regions”
-- AK and BC were in one group (not significantly different form each
+
+AK and BC were in one group (not significantly different form each
 other) and WA, OR, SD were in another group (not significantly different
 from each other and different from the AK/BC group). These Super Regions
 followed geographic patterns, so I re-grouped the meadows as Northern
@@ -78,15 +79,15 @@ lack of temperature data.
     ## 
     ## Linear Hypotheses:
     ##              Estimate Std. Error z value Pr(>|z|)    
-    ## BC - AK == 0   0.2544     0.3906   0.651  0.93676    
+    ## BC - AK == 0   0.2544     0.3906   0.651  0.93675    
     ## OR - AK == 0   5.4936     1.4261   3.852  < 0.001 ***
-    ## SD - AK == 0   3.9411     1.2319   3.199  0.00812 ** 
+    ## SD - AK == 0   3.9411     1.2319   3.199  0.00829 ** 
     ## WA - AK == 0   3.8067     0.7290   5.221  < 0.001 ***
     ## OR - BC == 0   5.2392     1.1843   4.424  < 0.001 ***
-    ## SD - BC == 0   3.6867     0.9941   3.708  0.00156 ** 
+    ## SD - BC == 0   3.6867     0.9941   3.708  0.00143 ** 
     ## WA - BC == 0   3.5523     0.5199   6.832  < 0.001 ***
-    ## SD - OR == 0  -1.5525     0.8597  -1.806  0.27312    
-    ## WA - OR == 0  -1.6869     0.8056  -2.094  0.15660    
+    ## SD - OR == 0  -1.5525     0.8597  -1.806  0.27295    
+    ## WA - OR == 0  -1.6869     0.8056  -2.094  0.15687    
     ## WA - SD == 0  -0.1344     0.8002  -0.168  0.99961    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -179,15 +180,15 @@ Severity.
     ## Linear Hypotheses:
     ##              Estimate Std. Error z value Pr(>|z|)   
     ## BC - AK == 0   0.2093     0.4575   0.457  0.98497   
-    ## OR - AK == 0   2.2178     1.4256   1.556  0.43990   
+    ## OR - AK == 0   2.2178     1.4256   1.556  0.43988   
     ## SD - AK == 0   0.7614     1.4679   0.519  0.97620   
-    ## WA - AK == 0   1.7769     0.5636   3.153  0.01024 * 
-    ## OR - BC == 0   2.0085     1.2302   1.633  0.39277   
+    ## WA - AK == 0   1.7769     0.5636   3.153  0.01030 * 
+    ## OR - BC == 0   2.0085     1.2302   1.633  0.39287   
     ## SD - BC == 0   0.5521     1.1969   0.461  0.98449   
     ## WA - BC == 0   1.5676     0.4513   3.474  0.00342 **
-    ## SD - OR == 0  -1.4564     1.1991  -1.215  0.66408   
+    ## SD - OR == 0  -1.4564     1.1991  -1.215  0.66406   
     ## WA - OR == 0  -0.4409     1.0245  -0.430  0.98802   
-    ## WA - SD == 0   1.0155     1.1806   0.860  0.86919   
+    ## WA - SD == 0   1.0155     1.1806   0.860  0.86921   
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## (Adjusted p values reported -- single-step method)
