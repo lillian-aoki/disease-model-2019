@@ -1,0 +1,160 @@
+---
+title: "Disease Models III"
+author: "LRA"
+date: "4/21/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(rptR)
+library(TMB)
+library(glmmTMB)
+library(bbmle)
+library(DHARMa)
+library(patchwork)
+library(multcomp)
+```
+
+## Modeling seagrass wasting disease
+
+This is an update to model results from Disease Models II doc, looking at disease at the meadow scale with supplemental temperature data. Prevalence and severity measurements on individual blades were averaged for each meadow (3702 blades scanned across 32 meadows).
+
+Explanatory variables were Blade Area, Shoot Density, Epiphyte Mass, and Spring Warming.
+
+Spring Warming was derived from MUR SST product - 1 km pixels. Because many of our sites are in small estuaries, the coastal masking of land excludes many sites (11 of 32 meadows). Here, I've added in two more sites - OR-A and OR-B, in Coos Bay, where there is a NERR water quality sampling station. The NERR water temps fall between OR-A and OR-B for late summer and fall, so I've used the NERR data as the temperature data for both OR-A and OR-B. This brings the total of sites included in the model to 23.
+
+The temperature variable I used was Spring Warming, I calculated the rate of warming in ºC per week from April 1-June 30 2019.
+
+I also included Region as a fixed effect.
+
+Below is an abbreviated summary of the meadow level modeling with temperature.
+
+```{r data,echo=FALSE}
+sp <- read.csv("input data/spring_warming_shoots_supp.csv")
+# Center and scale continuous effects
+sp$sBladeArea <- scale(sp$BladeAreaMean,center=TRUE,scale=TRUE)
+sp$sDensityShoots <- scale(sp$DensityShoots,center=TRUE,scale=TRUE)
+sp$sEpiphyteMass <- scale(sp$EpiphyteMass,center=TRUE,scale=TRUE)
+sp$sSlope <- scale(sp$slope,center=TRUE,scale=TRUE)
+# Since prev and sev at the meadow scale are (0,1), I can use beta regression for both
+```
+
+## Prevalence
+
+I used beta regression to model Prevalence as the proportion of infected blades in a meadow as a function of the parameters above.
+
+During initial model selection, the best model had Blade Area, Spring Warming, and Region as predictors. All were significant predictors. Note, "sSlope" is the Spring Warming effect (scaled slope of temp increase in Spring).
+
+Post-hoc contrasts showed that the Regions grouped into "Super Regions" 
+
+AK and BC were in one group (not significantly different form each other) and WA, OR, SD were in another group (not significantly different from each other and different from the AK/BC group). These Super Regions followed geographic patterns, so I re-grouped the meadows as Northern (AK and BC) and Southern (WA, OR, SD). Note, BB sites were excluded for lack of temperature data. 
+
+```{r prev1, echo=FALSE}
+fit_prev <- glmmTMB(PrevalenceMean~sBladeArea+sSlope+Region,
+                     data=sp,
+                     family=beta_family(link = "logit"))
+summary(fit_prev)
+
+glht_glmmTMB <- function (model, ..., component="cond") {
+  glht(model, ...,
+       coef. = function(x) fixef(x)[[component]],
+       vcov. = function(x) vcov(x)[[component]],
+       df = NULL)
+}
+modelparm.glmmTMB <- function (model, coef. = function(x) fixef(x)[[component]],
+                               vcov. = function(x) vcov(x)[[component]],
+                               df = NULL, component="cond", ...) {
+  multcomp:::modelparm.default(model, coef. = coef., vcov. = vcov.,
+                               df = df, ...)
+}
+g1 <- glht(fit_prev,linfct=mcp(Region="Tukey"))
+summary(g1)
+```
+
+
+With the new Super Region grouping, I re-ran the model with the same other effects (Blade Area and Spring Warming)
+
+```{r prev2,echo=FALSE}
+sp$SuperRegion[sp$Region=="AK"|sp$Region=="BC"] <- "Northern"
+sp$SuperRegion[sp$Region=="WA"|sp$Region=="OR"|sp$Region=="SD"] <- "Southern"
+
+fit_prev2_new <- glmmTMB(PrevalenceMean~sBladeArea+sSlope+SuperRegion,
+                     data=sp,
+                     family=beta_family(link = "logit"))
+summary(fit_prev2_new)
+```
+
+In the Super Region model, Spring Warming and Super Region were highly significant. This suggests there is a temperature effect!
+
+The plots below show a model visualization - predicted values of wasting disease prevalence at the meadow scale for each Super Region. The relationships are quite distinct. Lines show the model predictions, points show the empirical data.
+
+```{r prev_vis,echo=FALSE}
+jvalues <- with(sp, seq(from = min(slope), to = max(slope), length.out = 500))
+sjvalues <- scale(jvalues,center=TRUE,scale=TRUE)
+b.data <- data.frame(sSlope=sjvalues,sBladeArea=-0.3808)
+superregions <- c("Northern","Southern")
+for(i in seq_along(superregions)){
+  b.data$SuperRegion <- rep.int(superregions[i],nrow(b.data))
+  # b.data$Pred <- predict(fit_prev,newdata=b.data,type='response')
+  if(i==1){dat2 <- b.data}else{dat2 <- rbind(dat2,b.data)}
+}
+pred2 <- predict(fit_prev2_new,newdata=dat2,se=TRUE,type='response')
+try2 <- as.data.frame(pred2)
+try2 <- within(try2, {
+  PredictedInfection <- (fit)
+  LL <- (fit - (1.96 * se.fit))
+  UL <- (fit + (1.96 * se.fit))
+})
+try2 <- cbind(try2,dat2)
+try2$Slope <- (try2$sSlope*sd(jvalues))+mean(jvalues)
+
+northern <- subset(try2,SuperRegion=="Northern")
+southern <- subset(try2,SuperRegion=="Southern")
+
+Np <- ggplot(northern,aes(x=Slope))+
+  geom_line(aes(y=PredictedInfection))+
+  geom_line(aes(y=LL),linetype="dashed")+
+  geom_line(aes(y=UL),linetype="dashed")+
+  geom_point(data=sp[sp$SuperRegion=="Northern",],aes(x=slope,y=PrevalenceMean))+
+  ylim(c(-0.003,1.01))+
+  theme_bw()+
+  xlab("Slope of spring warming (ºC per week)")+
+  ylab("Wasting disease prevalence (% infected)")+
+  labs(title="Northern Meadows",
+       subtitle = "n=11 meadows, British Columbia and Alaska")
+
+Sp <- ggplot(southern,aes(x=Slope))+
+  geom_line(aes(y=PredictedInfection))+
+  geom_line(aes(y=LL),linetype="dashed")+
+  geom_line(aes(y=UL),linetype="dashed")+
+  geom_point(data=sp[sp$SuperRegion=="Southern",],aes(x=slope,y=PrevalenceMean))+
+  ylim(c(-0.003,1.01))+
+  theme_bw()+
+  xlab("Slope of spring warming (ºC per week)")+
+  ylab("Wasting disease prevalence (% infected)")+
+  labs(title="Southern Meadows",
+       subtitle = "n=10 meadows, San Diego to Washington")
+
+Np+Sp
+```
+
+I am a bit hesitant about the model, partly because the BB sites aren't in it, and also because other temperature variables likely won't show the same regional split. But for now it is interesting.
+
+## Severity
+
+Finally, for severity, I used the same approach (beta regression, same predictors)
+
+I am still working on model parameterization here - I'm not totally happy with the model yet. But, the significant predictors and therefore model inference have been pretty consistent as I'm tweaking the model: Blade Area is a significant predictor of severity at the meadow level. Spring Warming is not. 
+
+There's no pattern of Super Regions in the Region contrasts with Severity. But, WA has greater severity than other sites. Perhaps because wasting disease is so well established in WA?
+
+```{r sev,echo=FALSE}
+fit_sev1 <- glmmTMB(SeverityMean~sBladeArea+sSlope+Region,
+                    data=sp,
+                    family=beta_family(link = "logit"))
+summary(fit_sev1)
+g2 <- glht(fit_sev1,linfct=mcp(Region="Tukey"))
+summary(g2)
+```
