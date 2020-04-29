@@ -1,0 +1,207 @@
+---
+title: "PredictingTomalesBayTemps"
+author: "LRA"
+date: "4/28/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+
+```
+
+### Using BOON buoy temperatures to predict site temperatures at Tomales Bay seagrass meadows
+
+Analysis here uses three sources of temperature data:
+
+(1) logger temperatures from Jay's students from 2017-May 2019 at the Tomales Bay meadows
+
+(2) buoy temperatures from the Tomales Bay buoy, maintained by BML, from 2017-2019
+
+(3) NSF HOBO logger temperatures from July-Aug 2019
+
+I used the buoy temps and logger temps from the overlapping period 2017-May 2019 to calculate regression models to predict site temperatures.
+
+Then, I predicted site temperatures during the data gap (May 16-July 4 2019) using the buoy data.
+
+One question is how comparable the other loggers and the NSF HOBO loggers are - if they are subtidal vs intertidal, could change the relationship with the buoys.
+
+```{r data,echo=FALSE}
+# Bring in logger temperature data
+tmls <- read.csv("input data/supplemental temps/TomalesBayTempsJune2017toApril2019.csv")
+tmls$Date <- as.POSIXct(tmls$Date, format="%Y-%m-%d %H:%M:%S")
+
+# Calculate hourly logger temperatures
+tmls_hourly <- tmls %>%
+  group_by(Site,Year,DateTime=floor_date(Date,unit="hour")) %>%
+  summarise(LoggerHourly=mean(Temp,na.rm=TRUE))
+
+# Bring in buoy data
+tbb_17 <- read.csv("input data/supplemental temps/tbb_seawater_temperature_2017_hourly.csv",col.names=c("","time","","temp"))
+tbb_17 <- tbb_17[,c("time","temp")]
+tbb_17$time <- as.POSIXct(tbb_17$time, format="%Y-%m-%d %H:%M:%S")
+# Drop low values for when the buoy was not recording
+tbb_17$temp[tbb_17$temp<5] <- NA
+
+tbb_18 <- read.csv("input data/supplemental temps/tbb_seawater_temperature_2018_hourly.csv",col.names = c("","time","","temp"))
+tbb_18 <- tbb_18[,c("time","temp")]
+tbb_18$time <- as.POSIXct(tbb_18$time,format="%Y-%m-%d %H:%M:%S")
+tbb_18$temp[tbb_18$temp<5] <- NA
+
+tbb_19 <- read.csv("input data/supplemental temps/tbb_seawater_temperature_2019_hourly.csv",col.names = c("","time","","temp"))
+tbb_19 <- tbb_19[,c("time","temp")]
+tbb_19$time <- as.POSIXct(tbb_19$time,format="%Y-%m-%d %H:%M:%S")
+tbb_19$temp[tbb_19$temp<5] <- NA
+
+tbb <- rbind(tbb_17,tbb_18,tbb_19)
+tbb <- na.omit(tbb)
+
+tbb_hourly <- tbb %>%
+  group_by(DateTime=floor_date(time,unit="hour"))%>%
+  summarise(BuoyHourly=mean(temp,na.rm=TRUE))
+
+combo <- left_join(tmls_hourly,tbb_hourly,by="DateTime")
+combo$Year <- as.factor(combo$Year)
+combo <- na.omit(combo)
+# Model site temp (logger temp) as a function of buoy temp
+BL <- subset(combo,Site=="Blakes")
+MP <- subset(combo,Site=="Millerton")
+NC <- subset(combo,Site=="Nicks")
+BL_mod <- lm(LoggerHourly~BuoyHourly,data=BL)
+MP_mod <- lm(LoggerHourly~BuoyHourly,data=MP)
+NC_mod <- lm(LoggerHourly~BuoyHourly,data=NC)
+```
+
+### Model summaries for site temp vs buoy temp
+
+All three models are significant, R2 ~0.6-0.7
+
+```{r model, echo=FALSE,warning=FALSE}
+# Summaries of the site level models predicting site temperature from buoy temperature
+summary(BL_mod)
+summary(MP_mod)
+summary(NC_mod)
+```
+
+```{r model_plot,echo=FALSE}
+sBL <- coefficients(BL_mod)[2]
+iBL <- coefficients(BL_mod)[1]
+BL$PredictedHourly <- iBL+BL$BuoyHourly*sBL
+
+sMP <- coefficients(MP_mod)[2]
+iMP <- coefficients(MP_mod)[1]
+MP$PredictedHourly <- iMP+MP$BuoyHourly*sMP
+
+sNC <- coefficients(NC_mod)[2]
+iNC <- coefficients(NC_mod)[1]
+NC$PredictedHourly <- iNC+NC$BuoyHourly*sNC
+
+combo2 <- rbind(BL,MP,NC)
+
+pred_2019 <- subset(combo2,Year=="2019")
+
+pred_2019_daily <- pred_2019 %>%
+  group_by(Site,Year,DateTime=floor_date(DateTime,unit="day"))%>%
+  summarise(LoggerDaily=mean(LoggerHourly,na.rm=TRUE),
+            BuoyDaily=mean(BuoyHourly,na.rm=TRUE),
+            PredictedDaily=mean(PredictedHourly,na.rm=TRUE))
+ggplot(pred_2019_daily,aes(x=LoggerDaily,y=PredictedDaily,color=Year))+geom_point()+
+  facet_wrap(~Site)+
+  geom_abline()+
+  theme_bw()+
+  xlab("Logger Daily Temperature (ºC)")+
+  ylab("Predicted Daily Temperature (ºC)")
+
+# ggplot(pred_2019_daily,aes(x=DateTime))+geom_point(aes(y=LoggerDaily),color="darkblue")+
+#   geom_point(aes(y=PredictedDaily),color="lightblue")+
+#   facet_wrap(~Site)+
+#   geom_abline()+
+#   theme_bw()
+```
+
+The predicted temperatures match well with the logger temperatures from Jan-May 2019. However, there's more spread (divergence from the 1:1 line) at higher temperatures.
+
+```{r data2, echo=FALSE,warning=FALSE}
+# Read in NSF logger data
+hobo <- read.csv("input data/supplemental temps/BB.alltemps.2019.csv")
+hobo$DateObs <- as.POSIXct(hobo$DateObs,format=("%m/%d/%y %H:%M"))
+
+hobo_tmls <- subset(hobo,SiteCode=="C"|SiteCode=="E"|SiteCode=="F")
+hobo_tmls <- hobo_tmls[,c("SiteCode","SiteName","DateObs","TempC")]
+hobo_tmls_daily <- hobo_tmls %>%
+  group_by(SiteCode,SiteName,DateTime=floor_date(DateObs,unit="day"))%>%
+  summarise(TempDaily=mean(TempC,na.rm = TRUE))
+hobo_2019 <- subset(hobo_tmls_daily,DateTime>"2019-07-04")
+hobo_2019$Site <- recode(hobo_2019$SiteName,"Blake's Landing"="Blakes","Millerton Point"="Millerton","Nick's Cove"="Nicks")
+
+# NSF HOBO temps start on 7/4 and 7/5 - use 7/5 for all three for simplicity
+
+tbb_daily <- tbb %>%
+  group_by(DateTime=floor_date(time,unit="day"))%>%
+  summarise(BuoyDaily=mean(temp,na.rm=TRUE))
+tbb_daily_19 <- subset(tbb_daily,DateTime>"2018-12-31")
+tbb_hourly_gap <- subset(tbb_hourly,DateTime>"2019-05-15" & DateTime<"2019-07-05")
+
+buoy_2019 <- bind_rows("Blakes"=tbb_hourly_gap,"Millerton"=tbb_hourly_gap,"Nicks"=tbb_hourly_gap,.id="Site")
+
+buoy_2019$Slope <- NA
+buoy_2019$Intercept <- NA
+buoy_2019$Slope[buoy_2019$Site=="Blakes"] <- sBL
+buoy_2019$Slope[buoy_2019$Site=="Millerton"] <- sMP
+buoy_2019$Slope[buoy_2019$Site=="Nicks"] <- sNC
+
+buoy_2019$Intercept[buoy_2019$Site=="Blakes"] <- iBL
+buoy_2019$Intercept[buoy_2019$Site=="Millerton"] <- iMP
+buoy_2019$Intercept[buoy_2019$Site=="Nicks"] <- iNC
+
+buoy_2019$PredictedHourly <- buoy_2019$Intercept+buoy_2019$BuoyHourly*buoy_2019$Slope
+buoy_2019 <- buoy_2019 %>%
+  group_by(Site,DateTime=floor_date(DateTime,unit="day"))%>%
+  summarise(PredictedDaily=mean(PredictedHourly,na.rm=TRUE))
+
+logger_2019 <- pred_2019_daily[,c("Site","DateTime","LoggerDaily")]
+buoy_2019 <- plyr::rename(buoy_2019,replace=c("PredictedDaily"="TempDaily"))
+logger_2019 <- plyr::rename(logger_2019,replace=c("LoggerDaily"="TempDaily"))
+full_2019 <- bind_rows(logger_2019,buoy_2019,hobo_2019)
+
+full_2019$DateTime <- as.Date.POSIXct(full_2019$DateTime)
+tbb_daily_19$DateTime <- as.Date.POSIXct(tbb_daily_19$DateTime)
+```
+
+### Comparing the 2019 temperature record
+
+```{r combo,echo=FALSE,warning=FALSE}
+ggplot(full_2019,aes(x=DateTime,y=TempDaily,color=Site))+geom_line()+
+  geom_line(data=tbb_daily_19[tbb_daily_19$DateTime<"2019-09-01",],aes(x=DateTime,y=BuoyDaily,color="TB buoy"))+
+  geom_vline(xintercept=as.numeric(as.Date(c("2019-05-15","2019-07-05"))),linetype=4)+
+  theme_bw()+
+  ylab("Daily temperature (ºC)")+
+  xlab("Date")+
+  labs(title="Combined Tomales Bay temperatures 2019")
+```
+
+Temperatures from Jan 1 - May 15 are from logger data (from Jay's other loggers)
+
+Temperatures between the dashed lines (May 16 - July 4) are predicted from the buoy temperatures.
+
+Temperatures from July 5 - Aug 31 are from the NSF HOBO loggers.
+
+Predictions are made at the hourly level and averaged for each day.
+
+Some issues: 
+
+(1) During the prediction period, there's more separation between Millerton and the other sites. 
+
+(2) Millerton is the hottest site consistently through the prediction period but not during the other periods. 
+
+(3) Steep drop in temps in mid-May (i.e. moving from the loggers to predicted temps).
+
+But, the July temperatures don't have a big jump when moving back from predictions to loggers, and the spread between the buoy and site temps during the prediction period seems consistent with the July-Aug period.
+
+A couple other notes:
+
+I tried modeling site temps from buoy temps during only the "gap" (May-June 2017-2019). However, the linear relationship between hourly site temps and hourly buoy temps from just the May-June period is really weak (R2 <0.1). I think this suggests that there's a lot of variability in spring that means the buoy temp is a worse predictor of site-level temps than during other periods (e.g. winter). That's not very surprising, but is unfortunate if we want to use spring temperatures as a predictor of disease.
+
+An alternative to predicting site temps from buoy temps is to accept the gap in the temp data (May 16-July 4) at the Tomales sites. If we have permission to uses these other loggers (from Katie DuBois?), we have _some_ spring and summer temps, so we can use that more limited dataset for the 2019 disease modeling. 
