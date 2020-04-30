@@ -15,12 +15,14 @@ Spring Warming.
 
 Spring Warming was derived from MUR SST product - 1 km pixels. Because
 many of our sites are in small estuaries, the coastal masking of land
-excludes many sites (11 of 32 meadows). Here, I’ve added in two more
-sites - OR-A and OR-B, in Coos Bay, where there is a NERR water quality
-sampling station. The NERR water temps fall between OR-A and OR-B for
-late summer and fall, so I’ve used the NERR data as the temperature data
-for both OR-A and OR-B. This brings the total of sites included in the
-model to 23.
+excludes many sites (11 of 32 meadows). Here, I’ve added in 4 more
+sites: OR-A and OR-B, in Coos Bay, where there is a NERR water quality
+sampling station, and BB-F and BB-C, where I used in situ logger temps
+from one of Jay’s students and temps predicted from a nearby buoy. The
+NERR water temps fall between OR-A and OR-B for late summer and fall
+(the period when we have HOBO loggers), so I’ve used the NERR data as
+the temperature data for both OR-A and OR-B. This brings the total of
+sites included in the model to 25.
 
 The temperature variable I used was Spring Warming, I calculated the
 rate of warming in ºC per week from April 1-June 30 2019.
@@ -36,9 +38,9 @@ I used beta regression to model Prevalence as the proportion of infected
 blades in a meadow as a function of the parameters above.
 
 During initial model selection, the best model had Blade Area, Spring
-Warming, and Region as predictors. All were significant predictors.
-Note, “sSlope” is the Spring Warming effect (scaled slope of temp
-increase in Spring).
+Warming, and Region as predictors. Spring Warming and Region were
+significant predictors. Note, “sSlope” is the Spring Warming effect
+(scaled slope of temp increase in Spring).
 
 Post-hoc contrasts showed that the Regions grouped into “Super Regions”
 
@@ -54,20 +56,21 @@ lack of temperature data.
     ## Data: sp
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##    -21.5    -12.4     18.8    -37.5       15 
+    ##    -21.6    -10.7     19.8    -39.6       16 
     ## 
     ## 
-    ## Overdispersion parameter for beta family (): 14.5 
+    ## Overdispersion parameter for beta family (): 13.3 
     ## 
     ## Conditional model:
     ##             Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)  -1.9667     0.6729  -2.923  0.00347 ** 
-    ## sBladeArea   -0.2509     0.2989  -0.839  0.40120    
-    ## sSlope        1.9142     0.5856   3.269  0.00108 ** 
-    ## RegionBC      0.1335     0.4517   0.296  0.76750    
-    ## RegionOR      3.5209     1.3847   2.543  0.01100 *  
-    ## RegionSD      3.2759     1.3614   2.406  0.01612 *  
-    ## RegionWA      3.6807     0.8713   4.224  2.4e-05 ***
+    ## (Intercept)  -2.0241     0.7284  -2.779  0.00545 ** 
+    ## sBladeArea   -0.2090     0.2995  -0.698  0.48531    
+    ## sSlope        1.8554     0.5926   3.131  0.00174 ** 
+    ## RegionBB      4.8095     1.2354   3.893 9.90e-05 ***
+    ## RegionBC      0.1239     0.4690   0.264  0.79171    
+    ## RegionOR      3.4319     1.4341   2.393  0.01671 *  
+    ## RegionSD      3.2658     1.4122   2.313  0.02074 *  
+    ## RegionWA      3.6185     0.8989   4.025 5.69e-05 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -83,16 +86,21 @@ lack of temperature data.
     ## 
     ## Linear Hypotheses:
     ##              Estimate Std. Error z value Pr(>|z|)    
-    ## BC - AK == 0   0.1335     0.4517   0.296   0.9967    
-    ## OR - AK == 0   3.5209     1.3847   2.543   0.0563 .  
-    ## SD - AK == 0   3.2759     1.3614   2.406   0.0789 .  
-    ## WA - AK == 0   3.6807     0.8713   4.224   <0.001 ***
-    ## OR - BC == 0   3.3874     1.0957   3.092   0.0118 *  
-    ## SD - BC == 0   3.1423     1.0901   2.883   0.0222 *  
-    ## WA - BC == 0   3.5471     0.6082   5.833   <0.001 ***
-    ## SD - OR == 0  -0.2450     0.8186  -0.299   0.9966    
-    ## WA - OR == 0   0.1598     0.6591   0.242   0.9985    
-    ## WA - SD == 0   0.4048     0.8057   0.502   0.9761    
+    ## BB - AK == 0   4.8095     1.2354   3.893   <0.001 ***
+    ## BC - AK == 0   0.1239     0.4690   0.264   0.9996    
+    ## OR - AK == 0   3.4319     1.4341   2.393   0.1165    
+    ## SD - AK == 0   3.2658     1.4122   2.313   0.1400    
+    ## WA - AK == 0   3.6185     0.8989   4.025   <0.001 ***
+    ## BC - BB == 0  -4.6857     0.9648  -4.856   <0.001 ***
+    ## OR - BB == 0  -1.3776     0.7745  -1.779   0.3840    
+    ## SD - BB == 0  -1.5437     0.6817  -2.264   0.1551    
+    ## WA - BB == 0  -1.1910     0.6813  -1.748   0.4027    
+    ## OR - BC == 0   3.3080     1.1342   2.917   0.0294 *  
+    ## SD - BC == 0   3.1420     1.1324   2.775   0.0442 *  
+    ## WA - BC == 0   3.4947     0.6264   5.579   <0.001 ***
+    ## SD - OR == 0  -0.1660     0.8492  -0.196   0.9999    
+    ## WA - OR == 0   0.1866     0.6866   0.272   0.9996    
+    ## WA - SD == 0   0.3527     0.8369   0.421   0.9966    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## (Adjusted p values reported -- single-step method)
@@ -112,9 +120,9 @@ other effects (Blade Area and Spring Warming)
     ## 
     ## Conditional model:
     ##                     Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)          -1.9557     0.3040  -6.433 1.25e-10 ***
-    ## sBladeArea           -0.1548     0.1644  -0.941    0.347    
-    ## sSlope                2.0267     0.2932   6.914 4.73e-12 ***
+    ## (Intercept)          -2.0616     0.3169  -6.506 7.72e-11 ***
+    ## sBladeArea           -0.1501     0.1595  -0.941    0.347    
+    ## sSlope                1.9793     0.2863   6.914 4.73e-12 ***
     ## SuperRegionSouthern   3.5842     0.5261   6.812 9.60e-12 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
@@ -129,9 +137,20 @@ points show the empirical data.
 
 ![](disease_model_III_files/figure-gfm/prev_vis-1.png)<!-- -->
 
-I am a bit hesitant about the model, partly because the BB sites aren’t
-in it, and also because other temperature variables likely won’t show
-the same regional split. But for now it is interesting.
+A couple notes:
+
+If I include BB\_E, which is a bit of an outlier, there’s no significant
+effect of spring warming. Overall, I’m a bit hesitant with the BB sites,
+as they currently rely on temperatures predicted by modeling site temps
+off of nearby buoy temps.
+
+Also might be important to consider that here I’m combining remote
+sensing and in situ measurements, which have different biases. Not
+really any way around that if we want to include the 11 sites that we
+can’t get remote SST.
+
+I’m not sure what to make of the geographic split - it’s certainly
+interesting but might be an artifact more than anything else.
 
 ## Severity
 
@@ -153,20 +172,21 @@ wasting disease is so well established in WA?
     ## Data: sp
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##    -96.2    -87.1     56.1   -112.2       15 
+    ##    -80.9    -70.0     49.5    -98.9       16 
     ## 
     ## 
     ## Overdispersion parameter for beta family (): 48.5 
     ## 
     ## Conditional model:
     ##             Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)  -4.1170     0.6159  -6.684 2.32e-11 ***
-    ## sBladeArea   -1.0685     0.4134  -2.585  0.00975 ** 
-    ## sSlope        0.6992     0.5829   1.199  0.23034    
-    ## RegionBC      0.2133     0.4660   0.458  0.64725    
-    ## RegionOR      2.0176     1.2896   1.564  0.11771    
-    ## RegionSD      0.6479     1.4352   0.451  0.65168    
-    ## RegionWA      1.9324     0.6816   2.835  0.00458 ** 
+    ## (Intercept)  -3.2724     0.5712  -5.729 1.01e-08 ***
+    ## sBladeArea   -0.9973     0.3190  -3.126  0.00177 ** 
+    ## sSlope        0.4160     0.4913   0.847  0.39717    
+    ## RegionBB      0.1416     1.0224   0.138  0.88986    
+    ## RegionBC      0.6217     0.3848   1.616  0.10618    
+    ## RegionOR      1.7745     1.1641   1.524  0.12743    
+    ## RegionSD      0.3925     1.2107   0.324  0.74577    
+    ## RegionWA      1.3146     0.6154   2.136  0.03266 *  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -181,17 +201,20 @@ wasting disease is so well established in WA?
     ##     dispformula = ~1)
     ## 
     ## Linear Hypotheses:
-    ##              Estimate Std. Error z value Pr(>|z|)   
-    ## BC - AK == 0  0.21326    0.46605   0.458  0.98408   
-    ## OR - AK == 0  2.01756    1.28962   1.564  0.42483   
-    ## SD - AK == 0  0.64790    1.43522   0.451  0.98485   
-    ## WA - AK == 0  1.93239    0.68158   2.835  0.02667 * 
-    ## OR - BC == 0  1.80430    1.06721   1.691  0.35027   
-    ## SD - BC == 0  0.43465    1.14765   0.379  0.99214   
-    ## WA - BC == 0  1.71913    0.49178   3.496  0.00324 **
-    ## SD - OR == 0 -1.36965    1.04575  -1.310  0.59080   
-    ## WA - OR == 0 -0.08517    0.76885  -0.111  0.99994   
-    ## WA - SD == 0  1.28449    1.01465   1.266  0.62020   
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ##              Estimate Std. Error z value Pr(>|z|)
+    ## BB - AK == 0   0.1416     1.0224   0.138    1.000
+    ## BC - AK == 0   0.6217     0.3848   1.616    0.483
+    ## OR - AK == 0   1.7745     1.1641   1.524    0.544
+    ## SD - AK == 0   0.3925     1.2107   0.324    0.999
+    ## WA - AK == 0   1.3146     0.6154   2.136    0.200
+    ## BC - BB == 0   0.4801     0.7767   0.618    0.980
+    ## OR - BB == 0   1.6329     0.7500   2.177    0.184
+    ## SD - BB == 0   0.2510     0.5893   0.426    0.996
+    ## WA - BB == 0   1.1730     0.6470   1.813    0.360
+    ## OR - BC == 0   1.1528     0.9418   1.224    0.743
+    ## SD - BC == 0  -0.2291     0.9449  -0.242    1.000
+    ## WA - BC == 0   0.6930     0.4122   1.681    0.440
+    ## SD - OR == 0  -1.3819     0.8501  -1.626    0.477
+    ## WA - OR == 0  -0.4599     0.6816  -0.675    0.971
+    ## WA - SD == 0   0.9221     0.8195   1.125    0.801
     ## (Adjusted p values reported -- single-step method)

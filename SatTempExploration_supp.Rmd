@@ -1,0 +1,238 @@
+---
+title: "MURTempExp"
+author: "LRA"
+date: "4/17/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(plotrix)
+my_mean <- function(x) mean(x[x != 0],na.rm = TRUE)
+```
+
+## Data exploration with comparing water temperature and disease 
+
+# Daily temperature dataset 
+
+We collected SST from MUR satellite data (1 km resolution) for 21 of the 32 sites (meadows). For the other 11 sites (in OR, BB, and SD), the closest SST pixel was offshore and not useable. 
+
+In the plots below, I supplemented the two missing OR sites with temperature data from a nearby NEER monitoring station (~1-2 km from the meadows). For three of the sites in Tomales Bay, we had some temperatures from in situ measurements by Jay's student Katie DuBois. We also used temperatures from 2017-2018 at the sites and a nearby buoy (run by BML) to predict 2019 site temperatures from the 2019 buoy temperatures. For the missing SD sites, we are still working on finding alternative temperature sources. So we are still missing 6 sites out of 32. 
+
+```{r daily,echo=FALSE}
+region_order <- c("AK","BC","WA","OR","BB","SD")
+Month_order <- c("January","February","March","April","May","June","July","August","September","October","November","December")
+meadow_order <- c("AK_A","AK_B","AK_C","AK_D","AK_E","AK_F",
+                  "BC_A","BC_B","BC_C","BC_D","BC_E",
+                  "WA_A","WA_B","WA_C","WA_D","WA_E",
+                  "OR_A","OR_B","OR_C","OR_D","OR_E",
+                  "BB_A","BB_B","BB_C","BB_D","BB_E","BB_F",
+                  "SD_A","SD_B","SD_C","SD_D","SD_E")
+daily <- read.csv("input data/daily_supp.csv")
+disease <- read.csv("input data/disease_2019.csv")
+disease_site <- disease %>%
+  group_by(Region,SiteCode)%>%
+  summarise(SeverityMean=my_mean(Severity),
+            PrevalenceMean=mean(Prevalence),
+            BladeAreaMean=mean(BladeArea),
+            LesionAreaMean=mean(LesionArea))
+disease_site$Region <- ordered(disease_site$Region,levels=c("AK","BC","WA","OR","BB","SD"))
+
+disease_site$Meadow <- paste(disease_site$Region,disease_site$SiteCode,sep="_")
+daily$date <- as.POSIXct(daily$date)
+daily$month <- floor_date(daily$date,unit="month")
+daily$month <- as.POSIXct(daily$month)
+daily$month.w <- as.character.Date(daily$month,format="%B")
+# Define seasons according to climatalogical / meterological definitions: Dec-Jan-Feb = Winter, March-April-May = Spring,
+# June-July-Aug = Summer, Sept-Oct-Nov = Fall
+daily$season[daily$month.w=="January" | daily$month.w== "February"|daily$month.w== "December"] <- "Winter"
+daily$season[daily$month.w=="March" | daily$month.w== "April"|daily$month.w== "May"] <- "Spring"
+daily$season[daily$month.w=="June" | daily$month.w== "July" | daily$month.w== "August"] <- "Summer"
+daily$season <- ordered(daily$season,levels=c("Winter","Spring","Summer"))
+daily$region <- ordered(daily$region,levels=c("AK","BC","WA","OR","BB","SD"))
+daily$meadow <- paste(daily$region,daily$site,sep="_")
+daily$meadow <- ordered(daily$meadow,levels=meadow_order)
+daily <- subset(daily, meadow!="BB_A"& meadow!="BB_B"& meadow!="BB_D"& meadow!="SD_B"& 
+                  meadow!="SD_C"& meadow!="SD_E")
+
+ggplot(daily,aes(x=date,y=analysed_sst,color=site))+geom_line()+
+  facet_wrap(~region)+
+  theme_bw()+
+  xlab("Date")+
+  ylab("Daily SST ºC)")+
+  labs(title="Daily Site Temperatures, Jan-Aug 2019",
+       subtitle = "combined remote sensing, in situ measurements")
+```
+
+If we plot at weekly intervals, we can see seasonal patterns more clearly.
+
+```{r weekly,echo=FALSE}
+daily$week <- floor_date(daily$date,unit="week",week_start = getOption("lubridate.week.start", 7))
+
+weekly <- daily %>%
+  group_by(month,week,region,site,meadow,latitude,longitude) %>%
+  summarise(weeklySST=mean(analysed_sst))
+
+ggplot(weekly,aes(x=week,y=weeklySST,color=site))+geom_point()+
+  facet_wrap(~region)+
+  theme_bw()+
+  xlab("Date")+
+  ylab("Weekly SST ºC)")+
+  labs(title="Weekly site temperatures, Jan-Aug 2019")
+
+```
+
+There are clear regional trends in absolute temperature and in seasonal temperature patterns. Ane site-specific temperature differences.
+
+## Monthly temperatures
+
+We can look at average monthly temperatures to see if there are any strong patterns in absolute temperature. 
+
+```{r monthly,echo=FALSE}
+monthly <- daily %>%
+  group_by(month,region,site,meadow,latitude,longitude)%>%
+  summarise(SSTmean=mean(analysed_sst),
+            SSTsd=sd(analysed_sst),
+            SSTse=std.error(analysed_sst))
+monthly$month <- as.POSIXct(monthly$month)
+monthly$month.w <- as.character.Date(monthly$month,format="%B")
+monthly$region <- ordered(monthly$region,levels=c("AK","BC","WA","OR","BB","SD"))
+monthly <- left_join(monthly,disease_site,by=c("region"="Region","site"="SiteCode"))
+monthly$month.w <- ordered(monthly$month.w,levels=Month_order)
+ggplot(monthly,aes(x=SSTmean,y=PrevalenceMean,color=region))+geom_point()+
+  facet_wrap(~month.w)+
+  theme_bw()+
+  xlab("Mean SST (ºC)")+
+  ylab("Wasting disease prevalence (% infected)")+
+  labs(title="Disease prevalence as a function of monthly SST")
+
+ggplot(monthly,aes(x=SSTmean,y=SeverityMean,color=region))+geom_point()+
+  facet_wrap(~month.w)+
+  theme_bw()+
+  xlab("Mean SST (ºC)")+
+  ylab("Wasting disease severity (% leaf area)")+
+  labs(title="Disease severity as a function of monthly SST")
+```
+
+
+No clear relationships between disease metrics and monthly mean temperatures. Absolute temperatures have a wide range across the geographic scale of the study, so it's tricky to compare absolute temperatures between regions. But, we can look at relative temperature metrics. 
+
+I compared disease with three relative temperature metrics:
+
+(1) Rate of spring warming (increase in weekly temperature from April-June, ºC per week)
+(2) Winter cooling (change in monthly temperature from Jan to Feb, ºC).
+(3) Summer warming (change in monthly temperature from June to July, ºC). 
+
+## Spring warming
+```{r spring, echo=FALSE,warning=FALSE}
+spring <- subset(weekly,week>"2019-03-31" & week<"2019-07-01")
+spring$fweek <- as.factor(spring$week)
+spring$nweek <- as.integer(spring$fweek)
+spring$region <- ordered(spring$region,levels=region_order)
+
+spring$meadow <- as.factor(spring$meadow)
+spring$meadow <- droplevels(spring$meadow)
+
+meadows <- levels(spring$meadow)
+
+for(i in seq_along(meadows)){
+  mod <- lm(weeklySST~nweek,data=spring[spring$meadow==meadows[i],])
+  slope <- mod$coefficients[2]
+  r2 <- as.character(signif(summary(mod)$adj.r.squared, 2))
+  p <- as.character(signif(summary(mod)$coef[2,4], 2))
+  dat <- data.frame(meadow=meadows[i],slope=slope,r2=r2,p=p)
+  if(i==1){alldat <- dat}else{alldat <- rbind(alldat,dat)}
+}
+
+
+alldat <- left_join(alldat,disease_site,by=c("meadow"="Meadow"))
+
+ggplot(spring,aes(x=week,y=weeklySST,color=site))+geom_point()+
+  facet_wrap(~region)+
+  theme_bw()+
+  xlab("Date")+
+  ylab("Weekly SST ºC)")+
+  labs(title="Weekly temperatures, April-June 2019")
+
+ggplot(alldat,aes(x=slope,y=PrevalenceMean,color=Region))+geom_point()+
+  theme_bw()+
+  xlab("Slope of spring warming (ºC per week)")+
+  ylab("Wasting disease prevalence (% infected)")+
+  labs(title="Disease prevalence as a function of spring warming (April-June)")
+
+ggplot(alldat,aes(x=slope,y=SeverityMean,color=Region))+geom_point()+
+  theme_bw()+
+  xlab("Slope of spring warming (ºC per week)")+
+  ylab("Wasting disease severity (% leaf area)")+
+  labs(title="Disease severity as a function of spring warming (April-June)")
+```
+
+There's clear differentiation in spring warming rates between regions, and between sites within regions.
+WA_C is Beach Haven - warms up really fast and is the highest disease prevalence in the project.
+
+Prevalence increaes with spring warming but there seems to be differentiation between regions - AK and BC are clustered on a different trend that the other sites. Note the outlier BB site (high rate of warming, minimal disease) - that's BB_E, Millerton.
+
+Severity also increases with spring warming, but the relationship is weaker and the geographic split is not obvious.  
+
+Note, that the relationship is driven by warming over the entire period (April 1 - June 30). Splitting into smaller periods, e.g. months or April-May, doesn't show this kind of relationship. 
+
+## Winter cooling
+
+Temperatures tend to decline during winter (Jan to Feb) with the coldest days in Feb. However, not all sites show a consistent decline (in contrast to spring, when all sites show pretty consistent warming). So, rather than use the slope of weekly temperatures during Jan and Feb, I used the simple change in temps: mean Jan temp subtracted from the mean Feb temp. More negative values mean February was cooler than January. 
+
+```{r winter,echo=FALSE,warning=FALSE}
+
+monthly_wide <- monthly[,c(2,3,4,7,10)]
+monthly_wide <- spread(monthly_wide,key=month.w,value=SSTmean)
+monthly_wide$FebJan <- monthly_wide$February-monthly_wide$January
+monthly_wide <- left_join(monthly_wide,disease_site,by=c("region"="Region","site"="SiteCode"))
+ggplot(monthly_wide,aes(x=FebJan,y=PrevalenceMean,color=region))+geom_point()+
+  theme_bw()+
+  xlab("Change in temp from Jan to Feb (ºC)")+
+  ylab("Wasting disease prevalence (% infected)")+
+  labs(title="Disease prevalence as a function of winter cooling")
+ggplot(monthly_wide,aes(x=FebJan,y=SeverityMean,color=region))+geom_point()+
+  theme_bw()+
+  xlab("Change in temp from Jan to Feb (ºC)")+
+  ylab("Wasting disease severity (% blade area)")+
+  labs(title="Disease severity as a function of winter cooling")
+```
+
+Prevalence tends to increase as the winter temperatures become more constant. I.e. sites where Feb is not much colder than Jan have higher prevalence. But, there's a lot of noise, and note the outlier is BB_E again.
+
+Severity doesn't show any trend with winter cooling.
+
+## Summer warming
+
+Summer temperatures are similar to winter in that there's warming at some sites, but it's not consistent through time. Note that here I'm considering Summer to be June and July - since we sampled before Aug, I didn't consider the Aug temperatures.
+
+Here I used the change in temperature from June to July, i.e. July mean minus June mean. Values close to zero mean temps were consistent in June and July; larger values mean July was warmer than June.  
+
+```{r summer,echo=FALSE}
+monthly_wide$JulJun <- monthly_wide$July-monthly_wide$June
+ggplot(monthly_wide,aes(x=JulJun,y=PrevalenceMean,color=region))+geom_point()+
+  theme_bw()+
+  xlab("Change in temp from June to July (ºC)")+
+  ylab("Wasting disease prevalence (% infected)")+
+  labs(title="Disease prevalence as a function of summer warming")
+
+ggplot(monthly_wide,aes(x=JulJun,y=SeverityMean,color=region))+geom_point()+
+  theme_bw()+
+  xlab("Change in temp from June to July (ºC)")+
+  ylab("Wasting disease severity (% blade area)")+
+  labs(title="Disease severity as a function of summer warming")
+```
+
+Looks like Prevalence has a consistent, logistic relationship, with sites that experience a big temperature change from June to July having less disease than sites that have similar temps in June and July. This may see counterintuitive, but consider that consistent temperatures in June and July means that warm summer temperatures are reached early in the summer. A big increase from June to July could suggest a very hot July or could suggest that early summer is still a relatively cool period. 
+
+Severity has no trend. 
+
+## Conclusions
+
+All three measure of relative temperature show trends with Prevalence and weak or no trends with Severity. 
+
+Preliminary modeling suggests that spring warming is a significant predictor of disease prevalence, and that winter cooling and summer warming are not significant. 
+
+Models also suggest there is a geographic split, with different patterns in AK and BC compared to the other sites. 
