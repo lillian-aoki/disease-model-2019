@@ -29,21 +29,21 @@ selection and validation process, for simplicity in sharing results
     ## Data: bladeWD
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##   4199.3   4230.4  -2094.6   4189.3     3697 
+    ##   4219.9   4251.0  -2105.0   4209.9     3697 
     ## 
     ## Random effects:
     ## 
     ## Conditional model:
     ##  Groups   Name        Variance Std.Dev.
-    ##  MeadowId (Intercept) 1.965    1.402   
+    ##  MeadowId (Intercept) 1.88     1.371   
     ## Number of obs: 3702, groups:  MeadowId, 32
     ## 
     ## Conditional model:
-    ##                Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)     0.15978    0.25532   0.626 0.531443    
-    ## sBladeArea      0.22316    0.06630   3.366 0.000763 ***
-    ## sDensityShoots -0.04764    0.05912  -0.806 0.420370    
-    ## TidalHeightU    0.13448    0.08730   1.540 0.123444    
+    ##                 Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)    -0.004324   0.249862  -0.017 0.986192    
+    ## sBladeArea      0.226840   0.066422   3.415 0.000638 ***
+    ## sDensityShoots -0.042782   0.060745  -0.704 0.481258    
+    ## TidalHeightU    0.150309   0.087006   1.728 0.084063 .  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -71,32 +71,32 @@ between regions.
     ## Data: diseased
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##  -6208.8  -6147.5   3115.4  -6230.8     1944 
+    ##  -5407.4  -5346.7   2714.7  -5429.4     1842 
     ## 
     ## Random effects:
     ## 
     ## Conditional model:
     ##  Groups   Name        Variance Std.Dev.
-    ##  MeadowId (Intercept) 0.4506   0.6712  
-    ## Number of obs: 1955, groups:  MeadowId, 32
+    ##  MeadowId (Intercept) 0.4598   0.6781  
+    ## Number of obs: 1853, groups:  MeadowId, 32
     ## 
     ## Conditional model:
     ##                Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)    -2.43726    0.12669 -19.238   <2e-16 ***
-    ## sBladeArea     -0.10861    0.04297  -2.527   0.0115 *  
-    ## sDensityShoots  0.04999    0.04439   1.126   0.2601    
-    ## TidalHeightU    0.05865    0.04988   1.176   0.2397    
+    ## (Intercept)    -2.35808    0.12773 -18.462  < 2e-16 ***
+    ## sBladeArea     -0.12079    0.04347  -2.779  0.00546 ** 
+    ## sDensityShoots  0.04494    0.04656   0.965  0.33441    
+    ## TidalHeightU    0.04228    0.05032   0.840  0.40077    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Dispersion model:
     ##             Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)   1.5946     0.0727  21.933  < 2e-16 ***
-    ## RegionBB      0.7807     0.1041   7.500 6.37e-14 ***
-    ## RegionBC     -0.4122     0.1284  -3.210  0.00133 ** 
-    ## RegionOR      1.0952     0.1921   5.700 1.20e-08 ***
-    ## RegionSD     -0.3572     0.1165  -3.066  0.00217 ** 
-    ## RegionWA      0.4363     0.1048   4.163 3.14e-05 ***
+    ## (Intercept)  1.69692    0.07317  23.191  < 2e-16 ***
+    ## RegionBB     0.73751    0.10462   7.050 1.80e-12 ***
+    ## RegionBC    -0.40095    0.12988  -3.087 0.002021 ** 
+    ## RegionOR     1.05997    0.19312   5.489 4.05e-08 ***
+    ## RegionSD    -0.28422    0.11816  -2.405 0.016156 *  
+    ## RegionWA     0.35213    0.10537   3.342 0.000832 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
