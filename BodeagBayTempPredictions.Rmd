@@ -1,0 +1,158 @@
+---
+title: "BodegaPredictedTemps"
+author: "LRA"
+date: "5/26/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(readxl)
+Month_order <- c("January","February","March","April","May","June","July","August","September","October","November","December")
+```
+
+## Predicting Bodega Bay temps in 2019
+
+We can't use satellite SST measurements for the Bodega sites - the closes satellite pixels are offshore. No loggers were deployed during the time period of interest (Jan-June 2019). However, Bodega Marine Lab has a temperature station that records hourly water temperatures. Jay's group has older logger data (from 2012-2014) that we can use to regress site-specific temperatures against the BML shorestation. Then, we can predict 2019 site-specific temperatures based on the 2019 BML temperatures.
+
+In principle, I think this approach is okay. But it turns out the Bodega Bay seasonal patterns are quite different from the other sites, so we may not be able to calculate a rate of spring warming for these sites.
+
+```{r data, echo=FALSE,warning=FALSE,message=FALSE}
+bb_A <- read_excel("input data/supplemental temps/HarborTempAbbott.xlsx",sheet = "WP_I",trim_ws = TRUE)
+bb_A <- plyr::rename(bb_A,replace=c('Date Time, GMT-07:00'="Date","Temp, ¡F"="TempF","Intensity, lum/ft?"="Light"))
+bb_A$TempC <- (bb_A$TempF-32)*5/9
+bb_A <- bb_A[,c("Date","TempC")]
+bb_A$Region <- "BB"
+bb_A$Site <- "A"
+
+bb_B <- read_excel("input data/supplemental temps/HarborTempAbbott.xlsx",sheet = "MM_I",trim_ws = TRUE)
+bb_B <- plyr::rename(bb_B,replace=c('Date Time, GMT-07:00'="Date","Temp, ¡F"="TempF","Intensity, lum/ft?"="Light"))
+bb_B$TempC <- (bb_B$TempF-32)*5/9
+bb_B <- bb_B[,c("Date","TempC")]
+bb_B$Region <- "BB"
+bb_B$Site <- "B"
+
+bb_D <- read_excel("input data/supplemental temps/HarborTempAbbott.xlsx",sheet = "CC_I_C",trim_ws = TRUE)
+bb_D <- plyr::rename(bb_D,replace=c('Date Time, GMT-08:00'="Date","Temp, ¡F"="TempF","Intensity, lum/ft?"="Light"))
+bb_D$TempC <- (bb_D$TempF-32)*5/9
+bb_D <- bb_D[,c("Date","TempC")]
+bb_D$Region <- "BB"
+bb_D$Site <- "D"
+
+bb_logger <- rbind(bb_A,bb_B,bb_D)
+
+log_hourly <- bb_logger %>%
+  group_by(Site,Year=floor_date(Date,unit="year"),Date=floor_date(Date,unit="hour")) %>%
+  summarise(LoggerHourly=mean(TempC,na.rm=TRUE))
+
+bml_2012 <- read.csv("input data/supplemental temps/bml_seawater_temperature_2012_hourly.csv",col.names = c("","Date","","TempC"))
+bml_2012 <- bml_2012[,c("Date","TempC")]
+bml_2013 <- read.csv("input data/supplemental temps/bml_seawater_temperature_2013_hourly.csv",col.names = c("","Date","","TempC"))
+bml_2013 <- bml_2013[,c("Date","TempC")]
+bml <- rbind(bml_2012,bml_2013)
+bml$Date <- as.POSIXct(bml$Date,format="%Y-%m-%d %H:%M:%S")
+#bml$Date <- as.Date(bml$Date)
+
+bml_hourly <- bml %>%
+  group_by(Date=floor_date(Date,unit="hour")) %>%
+  summarise(BMLHourly=mean(TempC,na.rm=TRUE))
+# Combine logger and BML shorestation data
+combo <- left_join(log_hourly,bml_hourly,by="Date")
+combo$Month <- floor_date(combo$Date,unit="month")
+combo$Month.w <- as.character.Date(combo$Month,format="%B")
+combo$Month.w <- ordered(combo$Month.w,levels=Month_order)
+combo <- na.omit(combo)
+# Drop the zero values for BML station (probably in error)
+combo <- subset(combo,BMLHourly>0)
+# Convert to Daily temps (better fit for regressions)
+combo_daily <- combo %>%
+  group_by(Site,Month,Month.w,Day=floor_date(Date,unit="day"))%>%
+  summarise(LoggerDaily=mean(LoggerHourly,na.rm=TRUE),
+            BMLDaily=mean(BMLHourly,na.rm=TRUE))
+combo_daily <- na.omit(combo_daily)
+
+A <- subset(combo_daily,Site=="A")
+B <- subset(combo_daily,Site=="B")
+D <- subset(combo_daily,Site=="D")
+
+A_mod <- lm(LoggerDaily~BMLDaily,data=A)
+B_mod <- lm(LoggerDaily~BMLDaily,data=B)
+D_mod <- lm(LoggerDaily~BMLDaily,data=D)
+
+sA <- coefficients(A_mod)[2]
+iA <- coefficients(A_mod)[1]
+A$PredictedDaily <- iA+A$BMLDaily*sA
+
+sB <- coefficients(B_mod)[2]
+iB <- coefficients(B_mod)[1]
+B$PredictedDaily <- iB+B$BMLDaily*sB
+
+sD <- coefficients(D_mod)[2]
+iD <- coefficients(D_mod)[1]
+D$PredictedDaily <- iD+D$BMLDaily*sD
+
+ABD <- rbind(A,B,D)
+# Now read in 2019 BML values to predict using coefficients
+bml_2019 <- read.csv("input data/supplemental temps/bml_seawater_temperature_2019_daily.csv",col.names = c("","Date","","BMLDaily"))
+bml_2019 <- bml_2019[,c("Date","BMLDaily")]
+A_pred <- bml_2019
+A_pred$Site <- "A"
+A_pred$PredictedDaily <- iA+A_pred$BMLDaily*sA
+
+B_pred <- bml_2019
+B_pred$Site <- "B"
+B_pred$PredictedDaily <- iB+B_pred$BMLDaily*sB
+
+D_pred <- bml_2019
+D_pred$Site <- "D"
+D_pred$PredictedDaily <- iD+D_pred$BMLDaily*sD
+
+ABDpred <- rbind(A_pred,B_pred,D_pred)
+ABDpred$Date <- as.POSIXct(ABDpred$Date)
+```
+
+```{r weekly, echo=FALSE}
+ABDpred_weekly <- ABDpred %>%
+  group_by(Site,Week=floor_date(Date,unit="week"))%>%
+  summarise(BMLWeekly=mean(BMLDaily),PredictedWeekly=mean(PredictedDaily))
+ggplot(ABDpred_weekly,aes(x=Week,y=PredictedWeekly,color=Site))+
+  geom_line()+
+  xlab("Week of 2019")+
+  ylab("Predicted Weekly Temperature (ºC)")+
+  labs(title="Weekly temperatures at Bodega Bay sites",
+       subtitle = "Predicted from BML shorestation temperatures")+
+  theme_bw()
+```
+
+This plot shows the weekly temperatures at the three Bodega Bay meadows, predicted based on the BML shorestation data. These predicted temps show almost no spring warming at all. Weekly temperatures in Spring (April-June) are actually colder than weekly temperatures in Winter (Jan-March). Note, the predictive relationshps were made at the daily level, but here I'm plotting the weekly temperatures to better see seasonal patterns.
+
+There is some warming in summmer - July and August. But overall temperatures are stable most of the year.
+
+We can verify the predicted temperatures in July and August by plotting the predicitons with the in situ logger data (NSF project loggers were deployed in early July).
+
+```{r daily,echo=FALSE}
+hobo <- read.csv("input data/supplemental temps/BB.alltemps.2019.csv")
+hobo$DateObs <- as.POSIXct(hobo$DateObs,format=("%m/%d/%y %H:%M"))
+hobo <- subset(hobo,SiteCode=="A"|SiteCode=="B"|SiteCode=="D")
+hobo_daily <- hobo %>%
+  group_by(SiteCode,SiteName,DateTime=floor_date(DateObs,unit="day"))%>%
+  summarise(TempDaily=mean(TempC,na.rm = TRUE))
+
+ggplot()+geom_line(data=ABDpred[ABDpred$Date>"2019-06-30"&ABDpred$Date<"2019-09-01",],aes(x=Date,y=PredictedDaily,color=Site))+
+  geom_line(data=hobo_daily,aes(x=DateTime,y=TempDaily,color=SiteCode),linetype=2)+
+  xlab("Day of 2019")+
+  ylab("Predicted Daily Temperature (ºC)")+
+  labs(title="Daily temperatures at Bodega Bay sites",
+       subtitle = "Predicted from BML shorestation temperatures")+
+  theme_bw()
+```
+
+Here, the predicted temperatures are solid lines and the in situ logger temperatures are dashed lines. This plot shows that during July and August, the predicted temperatures track fairly well with the in situ temperatures. There's a spike in mid-July at the shorestation that doesn't show up in the in situ. And, B is consistently the warmest site from the in situ measurements but only sometimes the warmest from the predictions. However, the overall pattern of the predictions matches the in situ measurments well during the late summer period.
+
+### Implications
+
+1) At a large scale, Bodega Bay has different seasonal patterns compared to the other regions, i.e. spring can be colder than winter, and there is not necessarily a strong warming signal during spring.
+
+2) The lack of spring warming in Bodega partially undermines the hypothesis that spring warming is an important driver of disease. BB sites A, B, and D have prevalence of 75, 78 and 92% respectively, yet show no spring warming trend. Perhaps other environmental drivers overwhelm the effect of temperature in this region. Or, the temperature signal is an artifact of other differences between sites.
