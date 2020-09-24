@@ -1,0 +1,120 @@
+---
+title: "RelativeTempDisease"
+author: "LRA"
+date: "9/24/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+region_order <- c("AK","BC","WA","OR","BB","TB","SD")
+Month_order <- c("January","February","March","April","May","June","July","August","September","October","November","December")
+meadow_order <- c("AK_A","AK_B","AK_C","AK_D","AK_E","AK_F",
+                  "BC_A","BC_B","BC_C","BC_D","BC_E",
+                  "WA_A","WA_B","WA_C","WA_D","WA_E",
+                  "OR_A","OR_B","OR_C","OR_D","OR_E",
+                  "BB_A","BB_B","TB_C","BB_D","TB_E","TB_F",
+                  "SD_A","SD_B","SD_C","SD_D","SD_E")
+my_mean <- function(x) mean(x[x != 0],na.rm = TRUE)
+```
+
+### Quick summary of relative temperature metrics
+
+Here I am trying to model the effects of temperature on disease across the latitudinal scale. There's no relationship between any absolute temperature metric and disease levels. 
+
+Proposed metric is number of hot days in Summer (July and August) that are hot within the region
+
+```{r data}
+daily <- read.csv("input data/daily_supp.csv")
+disease <- read.csv("input data/disease_2019.csv")
+
+disease_site <- disease %>%
+  group_by(Region,SiteCode)%>%
+  summarise(SeverityMean=my_mean(Severity),
+            PrevalenceMean=mean(Prevalence),
+            BladeAreaMean=mean(BladeArea),
+            LesionAreaMean=mean(LesionArea))
+disease_site$Region <- as.character(disease_site$Region)
+disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="C"] <- "TB"
+disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="E"] <- "TB"
+disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="F"] <- "TB"
+disease_site$Region <- as.factor(disease_site$Region)
+disease_site$Region <- ordered(disease_site$Region,levels=c("AK","BC","WA","OR","BB","TB","SD"))
+
+disease_site$Meadow <- paste(disease_site$Region,disease_site$SiteCode,sep="_")
+
+daily$date <- as.POSIXct(daily$date)
+daily$week <- floor_date(daily$date,unit="week",week_start = getOption("lubridate.week.start", 7))
+daily$month <- floor_date(daily$week,unit="month")
+daily$month.w <- as.character.Date(daily$month,format="%B")
+# Define seasons by patterns in temp - constant low temps through March, rising temps through June, pretty stable during July/Aug
+daily$season[daily$month.w=="January" | daily$month.w== "February"|daily$month.w== "March"|daily$month.w=="December"] <- "Winter"
+daily$season[daily$month.w=="June" | daily$month.w== "April"|daily$month.w== "May"] <- "Spring"
+daily$season[daily$month.w== "July" | daily$month.w== "August"] <- "Summer"
+daily$region <- as.character(daily$region)
+daily$region[daily$region=="BB"&daily$site=="C"] <- "TB"
+daily$region[daily$region=="BB"&daily$site=="E"] <- "TB"
+daily$region[daily$region=="BB"&daily$site=="F"] <- "TB"
+daily$region <- as.factor(daily$region)
+daily$region <- ordered(daily$region,levels=c("AK","BC","WA","OR","BB","TB","SD"))
+daily$meadow <- paste(daily$region,daily$site,sep="_")
+daily$meadow <- ordered(daily$meadow,levels=meadow_order)
+regional <- daily %>%
+  group_by(region,season,month.w,month,week,date)%>%
+  summarise(RegionTemp=mean(analysed_sst,na.rm = TRUE))
+ggplot()+
+  geom_line(data=daily,aes(x=date,y=analysed_sst,color=site))+
+  geom_line(data=regional,aes(x=date,y=RegionTemp),linetype="dashed")+
+  facet_wrap(~region)+
+  theme_bw()
+regional_stats <- regional %>%
+  group_by(region,season)%>%
+  summarise(min=min(RegionTemp),
+            fifth=quantile(RegionTemp,0.05),
+            tenth=quantile(RegionTemp,0.10),
+            Q1=quantile(RegionTemp,0.25),
+            med=median(RegionTemp),
+            mean=mean(RegionTemp),
+            Q3=quantile(RegionTemp,0.75),
+            eighty=quantile(RegionTemp,0.8),
+            ninety=quantile(RegionTemp,0.9),
+            ninetyfive=quantile(RegionTemp,0.95),
+            max=max(RegionTemp),
+            range=max-min)
+print(regional_stats)
+```
+
+## HotDays
+
+Comparing disease levels based on the number of days above the 90th percentile within a region
+
+```{r threshold, echo=FALSE,warning=FALSE}
+# Only calculating the warm threshold here (HotDays) because ColdDays isn't as informative
+meadows <- levels(daily$meadow)
+regions <- levels(daily$region)
+sites <- levels(daily$site)
+winter <- subset(regional_stats,season=="Winter")
+summer <- subset(regional_stats,season=="Summer")
+alldat <- data.frame()
+for(i in seq_along(meadows)){
+  summer_days <- subset(daily,season=="Summer"&meadow==meadows[i])
+  region <- summer_days$region[1]
+  threshold <- summer$ninety[summer$region==region]
+  hot_days <- length(summer_days$date[summer_days$analysed_sst>threshold])
+  dat <- data.frame(Meadow=meadows[i],Threshold=threshold,HotDays=hot_days)
+  if(i==1){alldat <- dat}else{alldat <- rbind(alldat,dat)}
+}
+ninety <- na.omit(alldat)
+ninety <- left_join(ninety,disease_site,by="Meadow")
+ggplot(ninety,aes(x=HotDays,y=PrevalenceMean,color=Region))+geom_point()+
+  theme_bw()
+ggplot(ninety,aes(x=HotDays,y=PrevalenceMean,color=Region))+geom_point()+
+  geom_smooth(method="lm",se=FALSE)+
+  theme_bw()
+```
+
+This is a relative temperature metric that puts all the sites on the same temperature scale. But it is relative within regeions, and would be a lot better based on long-term climatology versus one summer. 
+
+Also, BB and TB only have 3 sites each, which is pretty limiting. 
