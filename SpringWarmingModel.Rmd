@@ -1,0 +1,93 @@
+---
+title: "SpringWarmingModel"
+author: "LRA"
+date: "9/29/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(betareg)
+library(performance)
+```
+
+### Spring warming model
+
+Here I use beta regression to model disease prevalence as a function of spring warming rates, i.e. weekly increase in temperature from April-June
+
+Temperature data are mostly from MUR SST (n=21 meadows) but some are from in situ sources (n=5)
+
+BB_E is excluded - if BB_E is included, there is no significant effect of the model.
+
+Here, I'm showing a final model that separates out two superregions - AK and BC together and other sites are grouped together.
+
+Note the main difference between these regions is due to colder winters in AK and BC - they warm up faster to get to similar temps to WA/OR in summer. 
+
+```{r data}
+region_order <- c("AK","BC","WA","OR","BB","SD")
+alldat <- read.csv("input data/new_spring_warming.csv")
+alldat$Region <- ordered(alldat$Region,levels=region_order)
+```
+
+
+```{r model, echo=FALSE}
+alldat$SuperRegion[alldat$Region=="AK"|alldat$Region=="BC"] <- "N"
+alldat$SuperRegion[alldat$Region=="WA"|alldat$Region=="OR"|alldat$Region=="BB"|alldat$Region=="SD"] <- "S"
+
+fit4 <- betareg(PrevalenceMean~slope+SuperRegion,
+                data=alldat[alldat$meadow!="BB_E",],
+                link="logit")
+summary(fit4)
+plot(fit4)
+jvalues <- with(alldat, seq(from = min(slope), to = max(slope), length.out = 500))
+sjvalues <- scale(jvalues,center=TRUE,scale=TRUE)
+b.data <- data.frame(slope=jvalues)
+superregions <- c("N","S")
+
+out <- data.frame()
+for(i in seq_along(superregions)){
+  b.data$SuperRegion <- rep.int(superregions[i],nrow(b.data))
+  if(i==1){out <- b.data}else{out <- rbind(out,b.data)}
+}
+pred <- cbind(
+  response=predict(fit4,newdata=out,type='response'),
+  variance=predict(fit4,newdata=out,type='variance'),
+  predict(fit4,newdata=out,type='quantile',at=c(0.025,0.975)))
+predict(fit4)
+try <- as.data.frame(pred)
+try <- cbind(try,out)
+northern <- subset(try,SuperRegion=="N")
+southern <- subset(try,SuperRegion=="S")
+
+ggplot(northern,aes(x=slope))+
+  geom_line(aes(y=response),color="grey50")+
+#  geom_line(aes(y=q_0.025),linetype="dashed",color="grey50")+
+ # geom_line(aes(y=q_0.975),linetype="dashed",color="grey50")+
+  geom_point(data=alldat[alldat$meadow!="BB_E",],aes(x=slope,y=PrevalenceMean,color=Region))+
+  geom_line(data=southern,aes(x=slope,y=response),color="grey15")+
+  #geom_line(data=southern,aes(x=slope,y=q_0.025),linetype="dashed",color="grey15")+
+  #geom_line(data=southern,aes(x=slope,y=q_0.975),linetype="dashed",color="grey15")+
+  geom_point(data=alldat[alldat$meadow=="BB_E",],aes(x=slope,y=PrevalenceMean),shape=8,color="darkred")+
+  theme_bw()+
+  xlab("Slope of spring warming (ºC per week)")+
+  ylab("Wasting disease prevalence (% infected)")+
+  labs(title="Diseaes prevalence as a function of spring warming",
+       subtitle = "Temperatures from MUR SST and in situ, n=26 meadows")
+
+ggplot(northern,aes(x=slope))+
+  geom_line(aes(y=response),color="grey50")+
+  geom_line(aes(y=q_0.025),linetype="dashed",color="grey50")+
+  geom_line(aes(y=q_0.975),linetype="dashed",color="grey50")+
+  geom_point(data=alldat[alldat$meadow!="BB_E",],aes(x=slope,y=PrevalenceMean,color=Region))+
+  geom_line(data=southern,aes(x=slope,y=response),color="grey15")+
+  geom_line(data=southern,aes(x=slope,y=q_0.025),linetype="dashed",color="grey15")+
+  geom_line(data=southern,aes(x=slope,y=q_0.975),linetype="dashed",color="grey15")+
+  geom_point(data=alldat[alldat$meadow=="BB_E",],aes(x=slope,y=PrevalenceMean),shape=8,color="darkred")+
+  theme_bw()+
+  xlab("Slope of spring warming (ºC per week)")+
+  ylab("Wasting disease prevalence (% infected)")+
+  labs(title="Diseaes prevalence as a function of spring warming",
+       subtitle = "Temperatures from MUR SST and in situ, n=26 meadows")
+
+```
