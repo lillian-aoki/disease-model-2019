@@ -5,6 +5,12 @@ LRA
 
 ## Modeling seagrass wasting disease
 
+\*\*Update as of 2020-09-30 I updated this with most recent data
+(modeled OR temps), and it gives the same result, but two major
+hesitations. First, glmmTMB is the wrong package, need to refit with
+betareg, which hasn’t worked so far. And 2, the mixture of remote and in
+situ temps is worrying. Need to determine if this is okay or not.
+
 This is an update to model results from Disease Models II doc, looking
 at disease at the meadow scale with supplemental temperature data.
 Prevalence and severity measurements on individual blades were averaged
@@ -52,25 +58,24 @@ followed geographic patterns, so I re-grouped the meadows as Northern
 lack of temperature data.
 
     ##  Family: beta  ( logit )
-    ## Formula:          PrevalenceMean ~ sBladeArea + sSlope + Region
+    ## Formula:          PrevalenceMean ~ slope + Region
     ## Data: sp
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##    -21.6    -10.7     19.8    -39.6       16 
+    ##    -22.5    -12.5     19.3    -38.5       18 
     ## 
     ## 
-    ## Overdispersion parameter for beta family (): 13.3 
+    ## Overdispersion parameter for beta family (): 12.3 
     ## 
     ## Conditional model:
     ##             Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)  -2.0241     0.7284  -2.779  0.00545 ** 
-    ## sBladeArea   -0.2090     0.2995  -0.698  0.48531    
-    ## sSlope        1.8554     0.5926   3.131  0.00174 ** 
-    ## RegionBB      4.8095     1.2354   3.893 9.90e-05 ***
-    ## RegionBC      0.1239     0.4690   0.264  0.79171    
-    ## RegionOR      3.4319     1.4341   2.393  0.01671 *  
-    ## RegionSD      3.2658     1.4122   2.313  0.02074 *  
-    ## RegionWA      3.6185     0.8989   4.025 5.69e-05 ***
+    ## (Intercept) -7.06672    2.10640  -3.355 0.000794 ***
+    ## slope       12.44657    3.53055   3.525 0.000423 ***
+    ## RegionBB     4.63500    1.19464   3.880 0.000105 ***
+    ## RegionBC    -0.07589    0.44546  -0.170 0.864728    
+    ## RegionOR     2.79896    1.30002   2.153 0.031318 *  
+    ## RegionSD     3.73156    1.25813   2.966 0.003017 ** 
+    ## RegionWA     3.55695    0.88075   4.039 5.38e-05 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -80,27 +85,26 @@ lack of temperature data.
     ## Multiple Comparisons of Means: Tukey Contrasts
     ## 
     ## 
-    ## Fit: glmmTMB(formula = PrevalenceMean ~ sBladeArea + sSlope + Region, 
-    ##     data = sp, family = beta_family(link = "logit"), ziformula = ~0, 
-    ##     dispformula = ~1)
+    ## Fit: glmmTMB(formula = PrevalenceMean ~ slope + Region, data = sp, 
+    ##     family = beta_family(link = "logit"), ziformula = ~0, dispformula = ~1)
     ## 
     ## Linear Hypotheses:
     ##              Estimate Std. Error z value Pr(>|z|)    
-    ## BB - AK == 0   4.8095     1.2354   3.893   <0.001 ***
-    ## BC - AK == 0   0.1239     0.4690   0.264   0.9996    
-    ## OR - AK == 0   3.4319     1.4341   2.393   0.1165    
-    ## SD - AK == 0   3.2658     1.4122   2.313   0.1400    
-    ## WA - AK == 0   3.6185     0.8989   4.025   <0.001 ***
-    ## BC - BB == 0  -4.6857     0.9648  -4.856   <0.001 ***
-    ## OR - BB == 0  -1.3776     0.7745  -1.779   0.3840    
-    ## SD - BB == 0  -1.5437     0.6817  -2.264   0.1551    
-    ## WA - BB == 0  -1.1910     0.6813  -1.748   0.4027    
-    ## OR - BC == 0   3.3080     1.1342   2.917   0.0294 *  
-    ## SD - BC == 0   3.1420     1.1324   2.775   0.0442 *  
-    ## WA - BC == 0   3.4947     0.6264   5.579   <0.001 ***
-    ## SD - OR == 0  -0.1660     0.8492  -0.196   0.9999    
-    ## WA - OR == 0   0.1866     0.6866   0.272   0.9996    
-    ## WA - SD == 0   0.3527     0.8369   0.421   0.9966    
+    ## BB - AK == 0  4.63500    1.19464   3.880  0.00101 ** 
+    ## BC - AK == 0 -0.07589    0.44546  -0.170  0.99996    
+    ## OR - AK == 0  2.79896    1.30002   2.153  0.19757    
+    ## SD - AK == 0  3.73156    1.25813   2.966  0.02522 *  
+    ## WA - AK == 0  3.55695    0.88075   4.039  < 0.001 ***
+    ## BC - BB == 0 -4.71089    0.96487  -4.882  < 0.001 ***
+    ## OR - BB == 0 -1.83604    0.55764  -3.292  0.00903 ** 
+    ## SD - BB == 0 -0.90344    0.55944  -1.615  0.49533    
+    ## WA - BB == 0 -1.07805    0.58952  -1.829  0.35992    
+    ## OR - BC == 0  2.87485    1.05021   2.737  0.04887 *  
+    ## SD - BC == 0  3.80745    1.01266   3.760  0.00162 ** 
+    ## WA - BC == 0  3.63283    0.65721   5.528  < 0.001 ***
+    ## SD - OR == 0  0.93260    0.43900   2.124  0.20941    
+    ## WA - OR == 0  0.75798    0.59634   1.271  0.72667    
+    ## WA - SD == 0 -0.17461    0.57393  -0.304  0.99936    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## (Adjusted p values reported -- single-step method)
@@ -109,21 +113,20 @@ With the new Super Region grouping, I re-ran the model with the same
 other effects (Blade Area and Spring Warming)
 
     ##  Family: beta  ( logit )
-    ## Formula:          PrevalenceMean ~ sBladeArea + sSlope + SuperRegion
+    ## Formula:          PrevalenceMean ~ slope + SuperRegion
     ## Data: sp
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##    -26.9    -21.2     18.5    -36.9       18 
+    ##    -19.2    -14.2     13.6    -27.2       22 
     ## 
     ## 
-    ## Overdispersion parameter for beta family (): 14.1 
+    ## Overdispersion parameter for beta family (): 7.86 
     ## 
     ## Conditional model:
-    ##                     Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)          -2.0616     0.3169  -6.506 7.72e-11 ***
-    ## sBladeArea           -0.1501     0.1595  -0.941    0.347    
-    ## sSlope                1.9793     0.2863   6.914 4.73e-12 ***
-    ## SuperRegionSouthern   3.5842     0.5261   6.812 9.60e-12 ***
+    ##              Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)   -7.8858     1.4395  -5.478 4.30e-08 ***
+    ## slope         13.8670     2.5369   5.466 4.60e-08 ***
+    ## SuperRegionS   3.9086     0.7604   5.140 2.75e-07 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -172,21 +175,21 @@ wasting disease is so well established in WA?
     ## Data: sp
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##    -80.9    -70.0     49.5    -98.9       16 
+    ##    -83.3    -72.0     50.7   -101.3       17 
     ## 
     ## 
-    ## Overdispersion parameter for beta family (): 48.5 
+    ## Overdispersion parameter for beta family (): 49.7 
     ## 
     ## Conditional model:
     ##             Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)  -3.2724     0.5712  -5.729 1.01e-08 ***
-    ## sBladeArea   -0.9973     0.3190  -3.126  0.00177 ** 
-    ## sSlope        0.4160     0.4913   0.847  0.39717    
-    ## RegionBB      0.1416     1.0224   0.138  0.88986    
-    ## RegionBC      0.6217     0.3848   1.616  0.10618    
-    ## RegionOR      1.7745     1.1641   1.524  0.12743    
-    ## RegionSD      0.3925     1.2107   0.324  0.74577    
-    ## RegionWA      1.3146     0.6154   2.136  0.03266 *  
+    ## (Intercept)  -2.9186     0.5172  -5.643 1.67e-08 ***
+    ## sBladeArea   -1.0731     0.3117  -3.443 0.000576 ***
+    ## sSlope        0.1545     0.4285   0.361 0.718427    
+    ## RegionBB     -0.2880     0.9660  -0.298 0.765625    
+    ## RegionBC      0.5323     0.3310   1.608 0.107733    
+    ## RegionOR      1.2194     0.9744   1.251 0.210771    
+    ## RegionSD     -0.1355     1.0911  -0.124 0.901139    
+    ## RegionWA      1.0087     0.5854   1.723 0.084889 .  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -202,19 +205,19 @@ wasting disease is so well established in WA?
     ## 
     ## Linear Hypotheses:
     ##              Estimate Std. Error z value Pr(>|z|)
-    ## BB - AK == 0   0.1416     1.0224   0.138    1.000
-    ## BC - AK == 0   0.6217     0.3848   1.616    0.483
-    ## OR - AK == 0   1.7745     1.1641   1.524    0.544
-    ## SD - AK == 0   0.3925     1.2107   0.324    0.999
-    ## WA - AK == 0   1.3146     0.6154   2.136    0.200
-    ## BC - BB == 0   0.4801     0.7767   0.618    0.980
-    ## OR - BB == 0   1.6329     0.7500   2.177    0.184
-    ## SD - BB == 0   0.2510     0.5893   0.426    0.996
-    ## WA - BB == 0   1.1730     0.6470   1.813    0.360
-    ## OR - BC == 0   1.1528     0.9418   1.224    0.743
-    ## SD - BC == 0  -0.2291     0.9449  -0.242    1.000
-    ## WA - BC == 0   0.6930     0.4122   1.681    0.440
-    ## SD - OR == 0  -1.3819     0.8501  -1.626    0.477
-    ## WA - OR == 0  -0.4599     0.6816  -0.675    0.971
-    ## WA - SD == 0   0.9221     0.8195   1.125    0.801
+    ## BB - AK == 0  -0.2880     0.9660  -0.298    0.999
+    ## BC - AK == 0   0.5323     0.3310   1.608    0.497
+    ## OR - AK == 0   1.2194     0.9744   1.251    0.735
+    ## SD - AK == 0  -0.1355     1.0911  -0.124    1.000
+    ## WA - AK == 0   1.0087     0.5854   1.723    0.423
+    ## BC - BB == 0   0.8203     0.7755   1.058    0.845
+    ## OR - BB == 0   1.5074     0.7529   2.002    0.265
+    ## SD - BB == 0   0.1524     0.5218   0.292    0.999
+    ## WA - BB == 0   1.2966     0.6243   2.077    0.230
+    ## OR - BC == 0   0.6871     0.8244   0.833    0.936
+    ## SD - BC == 0  -0.6679     0.8836  -0.756    0.957
+    ## WA - BC == 0   0.4763     0.4266   1.117    0.815
+    ## SD - OR == 0  -1.3550     0.8528  -1.589    0.510
+    ## WA - OR == 0  -0.2107     0.5627  -0.375    0.998
+    ## WA - SD == 0   1.1442     0.7338   1.559    0.530
     ## (Adjusted p values reported -- single-step method)

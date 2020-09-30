@@ -33,6 +33,9 @@ modelparm.glmmTMB <- function (model, coef. = function(x) fixef(x)[[component]],
 
 ## Modeling seagrass wasting disease
 
+**Update as of 2020-09-30
+I updated this with most recent data (modeled OR temps), and it gives the same result, but two major hesitations. First, glmmTMB is the wrong package, need to refit with betareg, which hasn't worked so far. And 2, the mixture of remote and in situ temps is worrying. Need to determine if this is okay or not. 
+
 This is an update to model results from Disease Models II doc, looking at disease at the meadow scale with supplemental temperature data. Prevalence and severity measurements on individual blades were averaged for each meadow (3702 blades scanned across 32 meadows).
 
 Explanatory variables were Blade Area, Shoot Density, Epiphyte Mass, and Spring Warming.
@@ -46,12 +49,12 @@ I also included Region as a fixed effect.
 Below is an abbreviated summary of the meadow level modeling with temperature.
 
 ```{r data,echo=FALSE}
-sp <- read.csv("input data/winter_spring_summer_supp.csv")
+sp <- read.csv("input data/new_spring_warming.csv")
 sp <- subset(sp,meadow!="BB_E")
 # Center and scale continuous effects
 sp$sBladeArea <- scale(sp$BladeAreaMean,center=TRUE,scale=TRUE)
-sp$sDensityShoots <- scale(sp$DensityShoots,center=TRUE,scale=TRUE)
-sp$sEpiphyteMass <- scale(sp$EpiphyteMass,center=TRUE,scale=TRUE)
+#sp$sDensityShoots <- scale(sp$DensityShoots,center=TRUE,scale=TRUE)
+#sp$sEpiphyteMass <- scale(sp$EpiphyteMass,center=TRUE,scale=TRUE)
 sp$sSlope <- scale(sp$slope,center=TRUE,scale=TRUE)
 # Since prev and sev at the meadow scale are (0,1), I can use beta regression for both
 ```
@@ -67,7 +70,7 @@ Post-hoc contrasts showed that the Regions grouped into "Super Regions"
 AK and BC were in one group (not significantly different form each other) and WA, OR, SD were in another group (not significantly different from each other and different from the AK/BC group). These Super Regions followed geographic patterns, so I re-grouped the meadows as Northern (AK and BC) and Southern (WA, OR, SD). Note, BB sites were excluded for lack of temperature data. 
 
 ```{r prev1, echo=FALSE}
-fit_prev <- glmmTMB(PrevalenceMean~sBladeArea+sSlope+Region,
+fit_prev <- glmmTMB(PrevalenceMean~slope+Region,
                      data=sp,
                      family=beta_family(link = "logit"))
 summary(fit_prev)
@@ -79,10 +82,12 @@ summary(g1)
 With the new Super Region grouping, I re-ran the model with the same other effects (Blade Area and Spring Warming)
 
 ```{r prev2,echo=FALSE}
-sp$SuperRegion[sp$Region=="AK"|sp$Region=="BC"] <- "Northern"
-sp$SuperRegion[sp$Region=="WA"|sp$Region=="OR"|sp$Region=="SD"] <- "Southern"
+sp$SuperRegion[sp$Region=="AK"] <- "N"
+sp$SuperRegion[sp$Region=="AK"|sp$Region=="BC"] <- "N"
+sp$SuperRegion[sp$Region=="WA"] <- "S"
+sp$SuperRegion[sp$Region=="WA"|sp$Region=="OR"|sp$Region=="BB"|sp$Region=="SD"] <- "S"
 
-fit_prev2_new <- glmmTMB(PrevalenceMean~sBladeArea+sSlope+SuperRegion,
+fit_prev2_new <- glmmTMB(PrevalenceMean~slope+SuperRegion,
                      data=sp,
                      family=beta_family(link = "logit"))
 summary(fit_prev2_new)
@@ -95,8 +100,8 @@ The plots below show a model visualization - predicted values of wasting disease
 ```{r prev_vis,echo=FALSE,warning=FALSE}
 jvalues <- with(sp, seq(from = min(slope), to = max(slope), length.out = 500))
 sjvalues <- scale(jvalues,center=TRUE,scale=TRUE)
-b.data <- data.frame(sSlope=sjvalues,sBladeArea=-0.3808)
-superregions <- c("Northern","Southern")
+b.data <- data.frame(slope=jvalues,sBladeArea=-0.3808)
+superregions <- c("N","S")
 for(i in seq_along(superregions)){
   b.data$SuperRegion <- rep.int(superregions[i],nrow(b.data))
   # b.data$Pred <- predict(fit_prev,newdata=b.data,type='response')
@@ -110,20 +115,20 @@ try2 <- within(try2, {
   UL <- (fit + (1.96 * se.fit))
 })
 try2 <- cbind(try2,dat2)
-try2$Slope <- (try2$sSlope*sd(jvalues))+mean(jvalues)
+#try2$Slope <- (try2$sSlope*sd(jvalues))+mean(jvalues)
 
-northern <- subset(try2,SuperRegion=="Northern")
-southern <- subset(try2,SuperRegion=="Southern")
+northern <- subset(try2,SuperRegion=="N")
+southern <- subset(try2,SuperRegion=="S")
 
-NSp <- ggplot(northern,aes(x=Slope))+
+NSp <- ggplot(northern,aes(x=slope))+
   geom_line(aes(y=PredictedInfection))+
   geom_line(aes(y=LL),linetype="dashed")+
   geom_line(aes(y=UL),linetype="dashed")+
   #geom_point(data=sp[sp$SuperRegion=="Northern",],aes(x=slope,y=PrevalenceMean))+
   geom_point(data=sp,aes(x=slope,y=PrevalenceMean,color=Region))+
-  geom_line(data=southern,aes(x=Slope,y=PredictedInfection))+
-  geom_line(data=southern,aes(x=Slope,y=LL),linetype="dashed")+
-  geom_line(data=southern,aes(x=Slope,y=UL),linetype="dashed")+
+  geom_line(data=southern,aes(x=slope,y=PredictedInfection))+
+  geom_line(data=southern,aes(x=slope,y=LL),linetype="dashed")+
+  geom_line(data=southern,aes(x=slope,y=UL),linetype="dashed")+
   theme_bw()+
   xlab("Slope of spring warming (ºC per week)")+
   ylab("Wasting disease prevalence (% infected)")+

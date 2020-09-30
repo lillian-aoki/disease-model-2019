@@ -54,8 +54,7 @@ daily$season <- ordered(daily$season,levels=c("Winter","Spring","Summer"))
 daily$region <- ordered(daily$region,levels=c("AK","BC","WA","OR","BB","SD"))
 daily$meadow <- paste(daily$region,daily$site,sep="_")
 daily$meadow <- ordered(daily$meadow,levels=meadow_order)
-daily <- subset(daily, meadow!="BB_A"& meadow!="BB_B"& meadow!="BB_D"& meadow!="SD_B"& 
-                  meadow!="SD_C"& meadow!="SD_E")
+daily <- subset(daily, meadow!="BB_A"& meadow!="BB_B"& meadow!="BB_D"& meadow!="SD_B"& meadow!="SD_E")
 
 ggplot(daily,aes(x=date,y=analysed_sst,color=site))+geom_line()+
   facet_wrap(~region)+
@@ -148,7 +147,7 @@ for(i in seq_along(meadows)){
 
 
 alldat <- left_join(alldat,disease_site,by=c("meadow"="Meadow"))
-
+write.csv(alldat,"input data/new_spring_warming.csv",row.names=FALSE)
 ggplot(spring,aes(x=week,y=weeklySST,color=site))+geom_point()+
   facet_wrap(~region)+
   theme_bw()+
