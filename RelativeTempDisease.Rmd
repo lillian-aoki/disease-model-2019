@@ -36,12 +36,12 @@ disease_site <- disease %>%
             PrevalenceMean=mean(Prevalence),
             BladeAreaMean=mean(BladeArea),
             LesionAreaMean=mean(LesionArea))
-disease_site$Region <- as.character(disease_site$Region)
-disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="C"] <- "TB"
-disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="E"] <- "TB"
-disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="F"] <- "TB"
-disease_site$Region <- as.factor(disease_site$Region)
-disease_site$Region <- ordered(disease_site$Region,levels=c("AK","BC","WA","OR","BB","TB","SD"))
+# disease_site$Region <- as.character(disease_site$Region)
+# disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="C"] <- "TB"
+# disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="E"] <- "TB"
+# disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="F"] <- "TB"
+# disease_site$Region <- as.factor(disease_site$Region)
+disease_site$Region <- ordered(disease_site$Region,levels=c("AK","BC","WA","OR","BB","SD"))
 
 disease_site$Meadow <- paste(disease_site$Region,disease_site$SiteCode,sep="_")
 
@@ -69,6 +69,13 @@ ggplot()+
   geom_line(data=regional,aes(x=date,y=RegionTemp),linetype="dashed")+
   facet_wrap(~region)+
   theme_bw()
+
+ggplot()+
+  geom_line(data=daily[daily$season=="Summer",],aes(x=date,y=analysed_sst,color=site))+
+  geom_line(data=regional[regional$season=="Summer",],aes(x=date,y=RegionTemp),linetype="dashed")+
+  facet_wrap(~region,scales="free")+
+  theme_bw()
+
 regional_stats <- regional %>%
   group_by(region,season)%>%
   summarise(min=min(RegionTemp),

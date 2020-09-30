@@ -1,0 +1,271 @@
+---
+title: "RelativeTempDiseaseHOBO"
+author: "LRA"
+date: "9/30/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(lubridate)
+library(betareg)
+region_order <- c("AK","BC","WA","OR","BB","TB","SD")
+Month_order <- c("January","February","March","April","May","June","July","August","September","October","November","December")
+meadow_order <- c("AK_A","AK_B","AK_C","AK_D","AK_E","AK_F",
+                  "BC_A","BC_B","BC_C","BC_D","BC_E",
+                  "WA_A","WA_B","WA_C","WA_D","WA_E",
+                  "OR_A","OR_B","OR_C","OR_D","OR_E",
+                  "BB_A","BB_B","BB_C","BB_D","BB_E","BB_F",
+                  "SD_A","SD_B","SD_C","SD_D","SD_E")
+my_mean <- function(x) mean(x[x != 0],na.rm = TRUE)
+hobo <- read.csv("input data/HOBO_JJA_2019.csv")
+hobo$DateObs <- as.Date(hobo$DateObs)
+```
+
+## Spatial temperature anomaly and disease
+
+Here I am using the in situ temperatures to determine if sites that are hotter locally, i.e. compared to other sites within the same region, have higher rates of disease.
+
+Using all the HOBO data from JJA of 2019. Combined upper and lower tidal heights, as there's little consistent variation between them.
+
+```{r data,warning=FALSE}
+disease <- read.csv("input data/disease_2019.csv")
+
+disease_site <- disease %>%
+  group_by(Region,SiteCode)%>%
+  summarise(SeverityMean=my_mean(Severity),
+            PrevalenceMean=mean(Prevalence),
+            BladeAreaMean=mean(BladeArea),
+            LesionAreaMean=mean(LesionArea))
+# disease_site$Region <- as.character(disease_site$Region)
+# disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="C"] <- "TB"
+# disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="E"] <- "TB"
+# disease_site$Region[disease_site$Region=="BB"&disease_site$SiteCode=="F"] <- "TB"
+# disease_site$Region <- as.factor(disease_site$Region)
+disease_site$Region <- ordered(disease_site$Region,levels=c("AK","BC","WA","OR","BB","SD"))
+disease_site$Meadow <- paste(disease_site$Region,disease_site$SiteCode,sep="_")
+
+hobo_daily <- hobo %>%
+  group_by(Region, SiteCode,Month=floor_date(DateObs,unit="month"),Month.w=as.character.Date(Month,format="%B"),
+           Week=floor_date(DateObs,unit="week",week_start = getOption("lubridate.week.start", 7)),
+           Day=floor_date(DateObs,unit="day")) %>%
+  summarise(Temp=mean(TempC))
+hobo_daily$Meadow <- paste(hobo_daily$Region, hobo_daily$SiteCode,sep="_")
+hobo_daily <- subset(hobo_daily,Meadow!="BC_B") # need to exclude BC_B because 1 day of temp data
+#hobo_daily <- hobo_daily$Day[hobo_daily$Region!="BB"&hobo_daily$Day<"2019-07-05"]
+
+# Define seasons by patterns in temp - constant low temps through March, rising temps through June, pretty stable during July/Aug
+hobo_daily$Season[hobo_daily$Month.w=="January" | hobo_daily$Month.w== "February"|hobo_daily$Month.w== "March"|hobo_daily$Month.w=="December"] <- "Winter"
+hobo_daily$Season[hobo_daily$Month.w=="June" | hobo_daily$Month.w== "April"|hobo_daily$Month.w== "May"] <- "Spring"
+hobo_daily$Season[hobo_daily$Month.w== "July" | hobo_daily$Month.w== "August"] <- "Summer"
+hobo_daily$Region <- ordered(hobo_daily$Region,levels=c("AK","BC","WA","OR","BB","SD"))
+hobo_daily$Meadow <- ordered(hobo_daily$Meadow,levels=meadow_order)
+regionalh <- hobo_daily %>%
+  group_by(Region,Season,Month.w,Month,Week,Day)%>%
+  summarise(RegionTemp=mean(Temp,na.rm = TRUE),Region90=quantile(Temp,0.90))
+
+
+```
+
+```{r plots, echo=FALSE}
+ggplot()+
+  geom_line(data=hobo_daily,aes(x=Day,y=Temp,color=SiteCode))+
+  geom_line(data=regionalh,aes(x=Day,y=RegionTemp),linetype="dashed")+
+  facet_wrap(~Region,scales="fixed")+
+  labs(title="In situ temps with Regional mean temp")+
+  theme_bw()
+ggplot()+
+  geom_line(data=hobo_daily,aes(x=Day,y=Temp,color=SiteCode))+
+  geom_line(data=regionalh,aes(x=Day,y=Region90),linetype="dashed")+
+  facet_wrap(~Region,scales="fixed")+
+  labs(title="In situ temps with Regional 90th percentile")+
+  theme_bw()
+```
+
+#### July and August
+Focus on July and August (temp records for June are incomplete)
+
+Potential metrics of spatial temperature anomaly:
+1) Mean daily difference between site temps and the regional mean
+2) Proportion of days in July and Aug spent with daily temp above the regional mean
+
+Note, use the proportion of days out of days when in situ loggers were deployed so that sites with longer records aren't biased.
+
+Can calculate the same as above for 90th percentile instead of regional mean
+
+```{r data2,warning=FALSE}
+dat <- left_join(hobo_daily,regionalh,by=c("Region","Season","Month","Month.w","Week","Day"))
+dat$DiffMean <- dat$Temp-dat$RegionTemp
+dat$Diff90 <- dat$Temp-dat$Region90
+dat_month <- dat %>%
+  group_by(Meadow, Region, SiteCode,Month,Month.w)%>%
+  summarise(mDiffMean=mean(DiffMean,na.rm = TRUE),hotcount=length(which(DiffMean>0)),
+            coldcount=length(which(DiffMean<0)),mdiff90=mean(Diff90,na.rm=TRUE),
+            hot90=length(which(Diff90>0)),cold90=length(which(Diff90<0)))
+dat_month <- left_join(dat_month,disease_site,by=c("Region","SiteCode","Meadow"))
+dat_season <- dat %>%
+  group_by(Meadow, Region, SiteCode,Season)%>%
+  summarise(mDiffMean=mean(DiffMean,na.rm = TRUE),hotcount=length(which(DiffMean>0)),
+            coldcount=length(which(DiffMean<0)),hotcountAve=hotcount/length(DiffMean),
+            mDiff90=mean(Diff90,na.rm=TRUE),
+            hot90=length(which(Diff90>0)),cold90=length(which(Diff90<0)),
+            hot90Ave=hot90/length(Diff90))
+dat_summer <- subset(dat_season,Season=="Summer")
+dat_summer <- left_join(dat_summer,disease_site,by=c("Region","SiteCode","Meadow"))
+
+ggplot(dat_summer,aes(x=mDiffMean,y=PrevalenceMean,color=Region))+
+  geom_point()+
+  xlab("Mean daily difference from regional mean temp (ºC)")+
+  ylab("Prevalence")+
+  labs(title="Spatial temperature anomaly in July-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_summer,aes(x=mDiffMean,y=PrevalenceMean,color=Region))+
+  geom_point()+
+  geom_smooth(method="lm",se = FALSE)+
+  xlab("Mean daily difference from regional mean temp (ºC)")+
+  ylab("Prevalence")+
+  labs(title="Spatial temperature anomaly in July-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_summer,aes(x=hotcountAve,y=PrevalenceMean,color=Region))+
+  geom_point()+
+  xlab("Proportion of summer days spent above regional mean (ºC)")+
+  ylab("Prevalence")+
+  labs(title="Spatial temperature anomaly in July-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_summer,aes(x=hotcountAve,y=PrevalenceMean,color=Region))+
+  geom_point()+
+  geom_smooth(method="lm",se = FALSE)+
+  xlab("Proportion of summer days spent above regional mean (ºC)")+
+  ylab("Prevalence")+
+  labs(title="Spatial temperature anomaly in July-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+## Same plots with severity
+ggplot(dat_summer,aes(x=mDiffMean,y=SeverityMean,color=Region))+
+  geom_point()+
+  xlab("Mean daily difference from regional mean temp (ºC)")+
+  ylab("Severity")+
+  labs(title="Spatial temperature anomaly in July-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_summer,aes(x=mDiffMean,y=SeverityMean,color=Region))+
+  geom_point()+
+  geom_smooth(method="lm",se = FALSE)+
+  xlab("Mean daily difference from regional mean temp (ºC)")+
+  ylab("Severity")+
+  labs(title="Spatial temperature anomaly in July-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_summer,aes(x=hotcountAve,y=SeverityMean,color=Region))+
+  geom_point()+
+  xlab("Proportion of summer days spent above regional mean (ºC)")+
+  ylab("Severity")+
+  labs(title="Spatial temperature anomaly in July-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_summer,aes(x=hotcountAve,y=SeverityMean,color=Region))+
+  geom_point()+
+  geom_smooth(method="lm",se = FALSE)+
+  xlab("Proportion of summer days spent above regional mean (ºC)")+
+  ylab("Severity")+
+  labs(title="Spatial temperature anomaly in July-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+
+```
+
+No overall pattern with spatial temperature anomaly metrics and disease. In WA and AK, sites that are warm for the region do show an increase in prevalence, but for other regions, the pattern disappears.
+
+So, a spatial anomaly may be important in some regions but no uniform effect. 
+
+Removing BB_E (exceptionally warm for its region) doesn't change patterns.
+
+Plots are not shown for 90th percentile metrics, but the lack of pattern is the same as for the metrics shown.
+
+#### JJA
+
+These are the same plots but using summer temperatures from the period June-Aug. More uneven betwen regions, but still don't see any patterns. 
+
+```{r jja,warning=FALSE}
+dat_jja <- dat %>%
+  group_by(Meadow, Region, SiteCode)%>%
+  summarise(mDiffMean=mean(DiffMean,na.rm = TRUE),hotcount=length(which(DiffMean>0)),
+            coldcount=length(which(DiffMean<0)),hotcountAve=hotcount/length(DiffMean),
+            mDiff90=mean(Diff90,na.rm=TRUE),
+            hot90=length(which(Diff90>0)),cold90=length(which(Diff90<0)),
+            hot90Ave=hot90/length(Diff90))
+dat_jja <- left_join(dat_jja,disease_site,by=c("Region","SiteCode","Meadow"))
+
+ggplot(dat_jja,aes(x=mDiffMean,y=PrevalenceMean,color=Region))+
+  geom_point()+
+  xlab("Mean daily difference from regional mean temp (ºC)")+
+  ylab("Prevalence")+
+  labs(title="Spatial temperature anomaly in June-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_jja,aes(x=mDiffMean,y=PrevalenceMean,color=Region))+
+  geom_point()+
+  geom_smooth(method="lm",se = FALSE)+
+  xlab("Mean daily difference from regional mean temp (ºC)")+
+  ylab("Prevalence")+
+  labs(title="Spatial temperature anomaly in June-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_jja,aes(x=hotcountAve,y=PrevalenceMean,color=Region))+
+  geom_point()+
+  xlab("Proportion of summer days spent above regional mean (ºC)")+
+  ylab("Prevalence")+
+  labs(title="Spatial temperature anomaly in June-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_jja,aes(x=hotcountAve,y=PrevalenceMean,color=Region))+
+  geom_point()+
+  geom_smooth(method="lm",se = FALSE)+
+  xlab("Proportion of summer days spent above regional mean (ºC)")+
+  ylab("Prevalence")+
+  labs(title="Spatial temperature anomaly in June-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+## Same plots with severity
+ggplot(dat_jja,aes(x=mDiffMean,y=SeverityMean,color=Region))+
+  geom_point()+
+  xlab("Mean daily difference from regional mean temp (ºC)")+
+  ylab("Severity")+
+  labs(title="Spatial temperature anomaly in June-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_jja,aes(x=mDiffMean,y=SeverityMean,color=Region))+
+  geom_point()+
+  geom_smooth(method="lm",se = FALSE)+
+  xlab("Mean daily difference from regional mean temp (ºC)")+
+  ylab("Severity")+
+  labs(title="Spatial temperature anomaly in June-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_jja,aes(x=hotcountAve,y=SeverityMean,color=Region))+
+  geom_point()+
+  xlab("Proportion of summer days spent above regional mean (ºC)")+
+  ylab("Severity")+
+  labs(title="Spatial temperature anomaly in June-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+ggplot(dat_jja,aes(x=hotcountAve,y=SeverityMean,color=Region))+
+  geom_point()+
+  geom_smooth(method="lm",se = FALSE)+
+  xlab("Proportion of summer days spent above regional mean (ºC)")+
+  ylab("Severity")+
+  labs(title="Spatial temperature anomaly in June-Aug 2019",
+       subtitle="Temperature from in situ loggers, n=28 meadows")+
+  theme_bw()
+```
+
+Overall, we see no indication that spatial temperature anomalies can explain disease across regions.
+
+I don't plan to present any models to explain these non-patterns. 
+
+
+Overall 

@@ -10,9 +10,10 @@ the latitudinal scale. There’s no relationship between any absolute
 temperature metric and disease levels.
 
 Proposed metric is number of hot days in Summer (July and August) that
-are hot within the region
+are hot within the
+region
 
-![](RelativeTempDisease_files/figure-gfm/data-1.png)<!-- -->
+![](RelativeTempDisease_files/figure-gfm/data-1.png)<!-- -->![](RelativeTempDisease_files/figure-gfm/data-2.png)<!-- -->
 
     ## # A tibble: 20 x 14
     ## # Groups:   region [?]
