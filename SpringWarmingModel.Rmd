@@ -91,3 +91,32 @@ ggplot(northern,aes(x=slope))+
        subtitle = "Temperatures from MUR SST and in situ, n=26 meadows")
 
 ```
+```{r severity}
+fit5 <- betareg(SeverityMean~slope,
+                data=alldat[alldat$meadow!="BB_E",],
+                link="logit")
+summary(fit5)
+plot(fit5)
+r2(fit5)
+
+jvalues <- with(alldat, seq(from = min(slope), to = max(slope), length.out = 100))
+b.data <- data.frame(slope=jvalues)
+
+pred <- cbind(
+  response=predict(fit5,newdata=b.data,type='response'),
+  variance=predict(fit5,newdata=b.data,type='variance'),
+  predict(fit5,newdata=b.data,type='quantile',at=c(0.025,0.975)))
+try <- as.data.frame(pred)
+try <- cbind(try,b.data)
+ggplot(try,aes(x=slope))+
+  geom_line(aes(y=response))+
+  geom_line(aes(y=q_0.025),linetype="dashed")+
+  geom_line(aes(y=q_0.975),linetype="dashed")+
+  geom_point(data=alldat,aes(x=slope,y=SeverityMean,color=Region))+
+  scale_color_viridis_d()+
+  xlab("Slope of spring warming (ºC per week)")+
+  ylab("Wasting disease severity (% blade area)")+
+  labs(title="Diseaes severity as a function of spring warming",
+       subtitle = "Temperatures from MUR SST and in situ, n=26 meadows")+
+  theme_bw()
+```
