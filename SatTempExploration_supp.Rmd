@@ -141,8 +141,14 @@ for(i in seq_along(meadows)){
   slope <- mod$coefficients[2]
   r2 <- as.character(signif(summary(mod)$adj.r.squared, 2))
   p <- as.character(signif(summary(mod)$coef[2,4], 2))
-  dat <- data.frame(meadow=meadows[i],slope=slope,r2=r2,p=p)
-  if(i==1){alldat <- dat}else{alldat <- rbind(alldat,dat)}
+  firstT=head(spring$weeklySST[spring$meadow==meadows[i]],n=1)
+  lastT=tail(spring$weeklySST[spring$meadow==meadows[i]],n=1)
+  first2=mean(head(spring$weeklySST[spring$meadow==meadows[i]],n=2))
+  last2=mean(tail(spring$weeklySST[spring$meadow==meadows[i]],n=2))
+  dat <- data.frame(meadow=meadows[i],slope=slope,r2=r2,p=p,
+                    firstT=firstT,lastT=lastT,diffT=lastT-firstT,
+                    first2=first2,last2=last2,diff2=last2-first2)
+    if(i==1){alldat <- dat}else{alldat <- rbind(alldat,dat)}
 }
 
 
