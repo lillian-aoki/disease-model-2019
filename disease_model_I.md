@@ -25,27 +25,41 @@ selection and validation process, for simplicity in sharing results
     ##  Family: binomial  ( logit )
     ## Formula:          
     ## Prevalence ~ sBladeArea + sDensityShoots + TidalHeight + (1 |  
-    ##     MeadowId)
+    ##     Region) + (1 | MeadowId)
     ## Data: bladeWD
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##   4219.9   4251.0  -2105.0   4209.9     3697 
+    ##   4215.0   4252.3  -2101.5   4203.0     3696 
     ## 
     ## Random effects:
     ## 
     ## Conditional model:
     ##  Groups   Name        Variance Std.Dev.
-    ##  MeadowId (Intercept) 1.88     1.371   
-    ## Number of obs: 3702, groups:  MeadowId, 32
+    ##  Region   (Intercept) 0.7763   0.8811  
+    ##  MeadowId (Intercept) 1.0928   1.0453  
+    ## Number of obs: 3702, groups:  Region, 6; MeadowId, 32
     ## 
     ## Conditional model:
-    ##                 Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)    -0.004324   0.249862  -0.017 0.986192    
-    ## sBladeArea      0.226840   0.066422   3.415 0.000638 ***
-    ## sDensityShoots -0.042782   0.060745  -0.704 0.481258    
-    ## TidalHeightU    0.150309   0.087006   1.728 0.084063 .  
+    ##                Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)    -0.04348    0.40924  -0.106 0.915395    
+    ## sBladeArea      0.24017    0.06697   3.586 0.000336 ***
+    ## sDensityShoots -0.03695    0.06083  -0.607 0.543546    
+    ## TidalHeightU    0.15406    0.08703   1.770 0.076680 .  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    ## # Indices of model performance
+    ## 
+    ##     AIC |     BIC | R2_conditional | R2_marginal |  ICC | RMSE | LOGLOSS | SCORE_LOG | SCORE_SPHERICAL
+    ## ------------------------------------------------------------------------------------------------------
+    ## 4215.04 | 4252.34 |           0.37 |        0.01 | 0.36 | 0.43 |    0.55 |      -Inf |               0
+
+    ## # ICC by Group
+    ## 
+    ## Group    |   ICC
+    ## ----------------
+    ## Region   | 0.150
+    ## MeadowId | 0.212
 
 The first part of the model shows that Blade Area is a significant
 predictor of disease status. Tidal Height and Shoot Density were not
@@ -99,6 +113,26 @@ between regions.
     ## RegionWA     0.35213    0.10537   3.342 0.000832 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+    ## # Indices of model performance
+    ## 
+    ##      AIC |      BIC | R2_conditional | R2_marginal | ICC | RMSE
+    ## ---------------------------------------------------------------
+    ## -5407.43 | -5346.66 |              1 |        0.04 |   1 | 0.13
+
+    ## Warning: get_variance ignores effects of dispersion model.
+
+    ## Warning: mu of 0.1 is too close to zero, estimate of random effect
+    ## variances may be unreliable.
+
+    ## Warning: Can't calculate model's distribution-specific variance. Results
+    ## are not reliable.
+
+    ## # ICC by Group
+    ## 
+    ## Group    |   ICC
+    ## ----------------
+    ## MeadowId | 1.000
 
 Second part of the model shows that Blade Area is signiciant but p-value
 is fairly large - esp for GLMM. Tidal Height and Shoot Density were

@@ -13,6 +13,7 @@ library(glmmTMB)
 library(bbmle)
 library(DHARMa)
 library(patchwork)
+library(performance)
 ```
 
 ## Modeling seagrass wasting disease
@@ -38,10 +39,12 @@ bladeWD$MeadowId <- paste(bladeWD$Region,bladeWD$SiteCode,sep=".")
 
 ```{r hurdleI, echo=FALSE}
 # Fit the first part of the hurdle model (predict prevalence from full data set)
-fit_prev <- glmmTMB(Prevalence~sBladeArea+sDensityShoots+TidalHeight+(1|MeadowId),
+fit_prev <- glmmTMB(Prevalence~sBladeArea+sDensityShoots+TidalHeight+(1|Region)+(1|MeadowId),
                   data=bladeWD,
                   family=binomial(link="logit"))
 summary(fit_prev)
+model_performance(fit_prev)
+icc(fit_prev,by_group = TRUE)
 ```
 The first part of the model shows that Blade Area is a significant predictor of disease status. 
 Tidal Height and Shoot Density were not significant predictors. 
@@ -58,6 +61,8 @@ fit_sev <- glmmTMB(Severity~sBladeArea+sDensityShoots+TidalHeight+(1|MeadowId),
                    family=beta_family(link = "logit"),
                    dispformula = ~Region)
 summary(fit_sev)
+performance(fit_sev)
+icc(fit_sev,by_group = TRUE)
 ```
 Second part of the model shows that Blade Area is signiciant but p-value is fairly large - esp for GLMM.
 Tidal Height and Shoot Density were agian not significant.
