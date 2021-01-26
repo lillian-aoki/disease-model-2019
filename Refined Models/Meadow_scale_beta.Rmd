@@ -1,0 +1,252 @@
+---
+title: "Meadow_scale_model"
+author: "LRA"
+date: "1/26/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(betareg)
+library(performance)
+library(patchwork)
+region_order <- c("AK","BC","WA","OR","BB","SD")
+
+```
+
+### Meadow-scale drivers of wasting disease
+
+Refined model of disease prevalence and severity at the meadow scale
+
+Major predictor is cumulative temperature anomaly as a fixed effect
+Other predictors to possibly include are density and blade area at the meadow scale (as fixed effects)
+However, replication is n=27, so the number of parameters that can be estimated is small (for a conservative n/k=10, can only fit
+one fixed effect due to estimating intercept and dispersion parameter. Up to 2 fixed effects keeps n/k at 6.75, still reasonable)
+
+```{r data}
+# read in and arrange data
+dat <- read.csv("Refined Models/input/june19_9y_SST_anomaly_disease.csv")
+dat$Region <- ordered(dat$Region,levels=region_order)
+dat$CPTempAnomaly <- dat$CDiffMeanHeat
+ba <- read.csv("Refined Models/input/Measured_Disease_summ4.csv")
+ba$Meadow <- paste(ba$Region,ba$SiteCode,sep="_")
+ba <- select(ba,c("Meadow","BladeAreaMean"))
+dat <- left_join(dat,ba,by="Meadow")
+den <- read.csv("Refined Models/input/density_cover_summ4.csv")
+den$Meadow <- paste(den$Region,den$SiteCode,sep="_")
+den <- select(den,c("Meadow","DensityShootsMean"))
+dat <- left_join(dat,den,by="Meadow")
+```
+
+### Prevalence model
+
+Compare four models, one with cumulative anomaly and blade area as fixed effects, one with cumulative anomaly and shoot density,
+third with only cumulative anomaly and last with all three fixed effects
+
+```{r prev_model_build, echo=TRUE}
+fit_prev1 <- betareg(PrevalenceMean~CPTempAnomaly + BladeAreaMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+
+fit_prev2 <- betareg(PrevalenceMean~CPTempAnomaly + DensityShootsMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+fit_prev3 <- betareg(PrevalenceMean~CPTempAnomaly,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+fit_prev4 <- betareg(PrevalenceMean~CPTempAnomaly + BladeAreaMean + DensityShootsMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+
+AIC(fit_prev1,fit_prev2,fit_prev3,fit_prev4)
+```
+First model (cumulative anomaly and blade area) is substantially better by AIC.
+
+```{r prev_model_eval,echo=FALSE}
+summary(fit_prev1)
+E.prev <- resid(fit_prev1,type='pearson')
+F.prev <- fitted(fit_prev1)
+plot(E.prev~F.prev)
+plot(E.prev~dat$BladeAreaMean)
+plot(E.prev~dat$CPTempAnomaly)
+```
+
+No major issues with the residuals when plotted against covariates and fitted values. Model is acceptable.
+
+Both cumulative anomaly and blade area are significant. Visualize model by simulating fit across new data holding one variable constant at a time.
+
+```{r prev_model_viz,echo=FALSE,fig.width=5,fig.height=7}
+# First simulate change in CPTA
+jvaluesP <- with(dat, seq(from = min(CPTempAnomaly), to = max(CPTempAnomaly), length.out = 100))
+# create new data and hold blade area at the median value of the dataset (29.1 cm2)
+b.dataP <- data.frame(CPTempAnomaly=jvaluesP,BladeAreaMean=median(dat$BladeAreaMean))
+predP <- cbind(
+  response=predict(fit_prev1,newdata=b.dataP,type='response'),
+  variance=predict(fit_prev1,newdata=b.dataP,type='variance'),
+  predict(fit_prev1,newdata=b.dataP,type='quantile',at=c(0.025,0.975)))
+prev <- as.data.frame(predP)
+prev <- cbind(prev,b.dataP)
+a <- ggplot(prev,aes(x=CPTempAnomaly))+
+  geom_line(aes(y=response))+
+  geom_line(aes(y=q_0.025),linetype="dashed")+
+  geom_line(aes(y=q_0.975),linetype="dashed")+
+  geom_point(data=dat,aes(x=CPTempAnomaly,y=PrevalenceMean,color=Region),size=2)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+ 
+  scale_color_viridis_d()+
+  xlab("Cumulative positive temperature anomaly (ºC)")+
+  ylab("Wasting disease prevalence\n (% individuals infected)")+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+
+# Next, repeat simulation but hold CPTA constant at median value (11.7 ºC)
+jvaluesP <- with(dat, seq(from = min(BladeAreaMean), to = max(BladeAreaMean), length.out = 100))
+# create new data and hold blade area at the median value of the dataset (29.1 cm2)
+b.dataP <- data.frame(BladeAreaMean=jvaluesP,CPTempAnomaly=median(dat$CPTempAnomaly))
+predP <- cbind(
+  response=predict(fit_prev1,newdata=b.dataP,type='response'),
+  variance=predict(fit_prev1,newdata=b.dataP,type='variance'),
+  predict(fit_prev1,newdata=b.dataP,type='quantile',at=c(0.025,0.975)))
+prev <- as.data.frame(predP)
+prev <- cbind(prev,b.dataP)
+b <- ggplot(prev,aes(x=BladeAreaMean))+
+  geom_line(aes(y=response))+
+  geom_line(aes(y=q_0.025),linetype="dashed")+
+  geom_line(aes(y=q_0.975),linetype="dashed")+
+  geom_point(data=dat,aes(x=BladeAreaMean,y=PrevalenceMean,color=Region),size=2)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+ 
+  scale_color_viridis_d()+
+  xlab(expression("Blade Area (cm"^"2"~")"))+
+  ylab("Wasting disease prevalence\n (% individuals infected)")+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+a/b + plot_layout(guides="collect")
+```
+
+Finally, calculate standardized coefficients (can do this by scaling the inputs to the model?)
+```{r prev_model_stdcoef}
+SDy <- sd(dat$PrevalenceMean)
+SDx1 <- sd(dat$CPTempAnomaly)
+SDx2 <- sd(dat$BladeAreaMean)
+coefficients(fit_prev1)[2]*SDx1
+coefficients(fit_prev1)[3]*SDx2
+# note, can also get these coeffs by scaling the predictors prior to fitting the model
+# dat$sCPTA <- scale(dat$CPTempAnomaly,scale=TRUE,center=TRUE)
+# dat$sBA <- scale(dat$BladeAreaMean,scale=TRUE,center=TRUE)
+# fit_prev1s <- betareg(PrevalenceMean~sCPTA + sBA,
+#                      data=dat,
+#                      weights = Count,
+#                      link = "logit")
+# summary(fit_prev1s)
+```
+Standardized coefficient for CPTA is about 5x greater than the standardized coefficient for blade area.
+
+### Severity model
+
+Repeat same analysis for severity
+
+```{r sev_model_build, echo=FALSE}
+fit_sev1 <- betareg(SeverityMean~CPTempAnomaly + BladeAreaMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+
+fit_sev2 <- betareg(SeverityMean~CPTempAnomaly + DensityShootsMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+fit_sev3 <- betareg(SeverityMean~CPTempAnomaly,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+fit_sev4 <- betareg(SeverityMean~ BladeAreaMean + DensityShootsMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+AIC(fit_sev1,fit_sev2,fit_sev3,fit_sev4)
+```
+Use the same model as for prevalence (want to know if the same factors drive both).
+
+```{r sev_model_eval,echo=FALSE}
+summary(fit_sev1)
+E.sev <- resid(fit_sev1,type='pearson')
+F.sev <- fitted(fit_sev1)
+plot(E.sev~F.sev)
+plot(E.sev~dat$BladeAreaMean)
+plot(E.sev~dat$CPTempAnomaly)
+```
+
+Beach Haven residual is a bit of an outlier perhaps but otherwise no major issues with the residuals when plotted against covariates and fitted values. Model is acceptable.
+
+Blade area is significant, CPTA is not. Visualize model by simulating fit across new data holding one variable constant at a time.
+
+```{r sev_model_viz,echo=FALSE,fig.width=5,fig.height=7}
+jvaluesS <- with(dat, seq(from = min(BladeAreaMean), to = max(BladeAreaMean), length.out = 100))
+b.dataS <- data.frame(BladeAreaMean=jvaluesS,CPTempAnomaly=median(dat$CPTempAnomaly),Region="BC")
+predS <- cbind(
+  response=predict(fit_sev1,newdata=b.dataS,type='response'),
+  variance=predict(fit_sev1,newdata=b.dataS,type='variance'),
+  predict(fit_sev1,newdata=b.dataS,type='quantile',at=c(0.025,0.975)))
+sev <- as.data.frame(predS)
+sev <- cbind(sev,b.dataS)
+c <- ggplot(sev,aes(x=BladeAreaMean))+
+  geom_line(aes(y=response))+
+  geom_line(aes(y=q_0.025),linetype="dashed")+
+  geom_line(aes(y=q_0.975),linetype="dashed")+
+  geom_point(data=dat,aes(x=BladeAreaMean,y=SeverityMean,color=Region),size=2)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+ 
+  scale_color_viridis_d()+
+  xlab(expression("Blade Area (cm"^"2"~")"))+
+  ylab("Wasting disease severity\n (% blade area damaged)")+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+
+# Don't simulate with CPTA because it's not significant
+# jvaluesS <- with(dat, seq(from = min(CPTempAnomaly), to = max(CPTempAnomaly), length.out = 100))
+# median(dat$CPTempAnomaly)
+# mean(dat$CPTempAnomaly)
+# b.dataS <- data.frame(CPTempAnomaly=jvaluesS,BladeAreaMean=median(dat$BladeAreaMean),Region="BC")
+# predS <- cbind(
+#   response=predict(fit_sev1,newdata=b.dataS,type='response'),
+#   variance=predict(fit_sev1,newdata=b.dataS,type='variance'),
+#   predict(fit_sev1,newdata=b.dataS,type='quantile',at=c(0.025,0.975)))
+# sev <- as.data.frame(predS)
+# sev <- cbind(sev,b.dataS)
+d <- ggplot()+
+  #geom_line(aes(y=response))+
+  #geom_line(aes(y=q_0.025),linetype="dashed")+
+  #geom_line(aes(y=q_0.975),linetype="dashed")+
+  geom_point(data=dat,aes(x=CPTempAnomaly,y=SeverityMean,color=Region),size=2)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+ 
+  scale_color_viridis_d()+
+  xlab("Cumulative positive temperature anomaly (ºC)")+
+  ylab("Wasting disease severity\n (% blade area damaged)")+
+  theme_bw()+
+  theme(panel.grid = element_blank())
+(d / c) + plot_layout(guides="collect")
+```
+
+
+```{r sev_model_stdcoef}
+SDy <- sd(dat$PrevalenceMean)
+SDx1 <- sd(dat$CPTempAnomaly)
+SDx2 <- sd(dat$BladeAreaMean)
+coefficients(fit_sev1)[2]*SDx1
+coefficients(fit_sev1)[3]*SDx2
+# note, can also get these coeffs by scaling the predictors prior to fitting the model
+# dat$sCPTA <- scale(dat$CPTempAnomaly,scale=TRUE,center=TRUE)
+# dat$sBA <- scale(dat$BladeAreaMean,scale=TRUE,center=TRUE)
+# fit_sev1s <- betareg(SeverityMean~sCPTA + sBA,
+#                      data=dat,
+#                      weights = Count,
+#                      link = "logit")
+# summary(fit_sev1s)
+```
+
+Here, the standardized coeff for blade area is 30x greater in magnitude than the CPTA (which is non-sig anyway).
+
+Overall, CPTA was significant for determining prevalence but not for severity, which is significantly affected by blade area.
