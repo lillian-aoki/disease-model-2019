@@ -51,6 +51,11 @@ bladeWD$MeadowId <- paste(bladeWD$Region,bladeWD$SiteCode,sep=".")
 bladeWD$TransectId <- paste(bladeWD$MeadowId,bladeWD$Transect,sep="_")
 bladeWD$Region <- as.factor(bladeWD$Region)
 dat <- bladeWD[-which(is.na((bladeWD$CDiffMeanHeat))),]
+#rescale continuous predictors based on the restricted dataset
+dat$sBladeArea <- scale(dat$BladeArea,center=TRUE,scale=TRUE)
+dat$sDensityShoots <- scale(dat$DensityShoots,center=TRUE,scale=TRUE)
+dat$sEpiphytePerAreaMean <- scale(dat$EpiphytePerAreaMean,center=TRUE,scale=TRUE)
+dat$sCDiffMeanHeat <- scale(dat$CDiffMeanHeat,center=TRUE,scale=TRUE)
 
 ```
 
@@ -142,8 +147,17 @@ These models are fit with beta regression, as severity is a non-count proportion
 
 ```{r blade_sev_cpta}
 sev <- subset(bladeWD,Prevalence==1)
+sev$sBladeArea <- scale(sev$BladeArea,center=TRUE,scale=TRUE)
+sev$sDensityShoots <- scale(sev$DensityShoots,center=TRUE,scale=TRUE)
+sev$sEpiphytePerAreaMean <- scale(sev$EpiphytePerAreaMean,center=TRUE,scale=TRUE)
+sev$sCDiffMeanHeat <- scale(sev$CDiffMeanHeat,center=TRUE,scale=TRUE)
+
 write.csv(sev,"Refined Models/input/severity_blades.csv",row.names=FALSE)
 sevdat <- sev[-which(is.na((sev$CDiffMeanHeat))),]
+sevdat$sBladeArea <- scale(sevdat$BladeArea,center=TRUE,scale=TRUE)
+sevdat$sDensityShoots <- scale(sevdat$DensityShoots,center=TRUE,scale=TRUE)
+sevdat$sEpiphytePerAreaMean <- scale(sevdat$EpiphytePerAreaMean,center=TRUE,scale=TRUE)
+sevdat$sCDiffMeanHeat <- scale(sevdat$CDiffMeanHeat,center=TRUE,scale=TRUE)
 
 # use beta regression in glmmTMB
 

@@ -52,22 +52,22 @@ final models only.
     ## 
     ## Conditional model:
     ##  Groups     Name        Variance Std.Dev.
-    ##  MeadowId   (Intercept) 1.4360   1.1983  
+    ##  MeadowId   (Intercept) 1.4359   1.1983  
     ##  TransectId (Intercept) 0.6854   0.8279  
     ## Number of obs: 3177, groups:  MeadowId, 27; TransectId, 162
     ## 
     ## Conditional model:
-    ##                                    Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)                        0.002957   0.270198   0.011   0.9913    
-    ## sBladeArea                         0.488639   0.099119   4.930 8.23e-07 ***
-    ## sDensityShoots                     0.837666   0.394925   2.121   0.0339 *  
-    ## sEpiphytePerAreaMean               0.314550   0.301591   1.043   0.2970    
-    ## sCDiffMeanHeat                     1.142476   0.264411   4.321 1.55e-05 ***
-    ## TidalHeightU                       0.297271   0.190619   1.559   0.1189    
-    ## sBladeArea:TidalHeightU            0.217103   0.165071   1.315   0.1884    
-    ## sDensityShoots:TidalHeightU       -0.843958   0.362902  -2.326   0.0200 *  
-    ## sEpiphytePerAreaMean:TidalHeightU -0.376282   0.294575  -1.277   0.2015    
-    ## sCDiffMeanHeat:TidalHeightU       -0.321523   0.178172  -1.805   0.0711 .  
+    ##                                   Estimate Std. Error z value Pr(>|z|)    
+    ## (Intercept)                        0.04927    0.27101   0.182   0.8557    
+    ## sBladeArea                         0.49372    0.10015   4.930 8.23e-07 ***
+    ## sDensityShoots                     0.89477    0.42184   2.121   0.0339 *  
+    ## sEpiphytePerAreaMean               0.31627    0.30330   1.043   0.2971    
+    ## sCDiffMeanHeat                     1.14245    0.26441   4.321 1.55e-05 ***
+    ## TidalHeightU                       0.29997    0.19434   1.544   0.1227    
+    ## sBladeArea:TidalHeightU            0.21936    0.16678   1.315   0.1884    
+    ## sDensityShoots:TidalHeightU       -0.90148    0.38763  -2.326   0.0200 *  
+    ## sEpiphytePerAreaMean:TidalHeightU -0.37836    0.29624  -1.277   0.2015    
+    ## sCDiffMeanHeat:TidalHeightU       -0.32151    0.17817  -1.804   0.0712 .  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -138,7 +138,7 @@ For this model, Region can be included in the random part
     ## MeadowId   | 0.194
     ## TransectId | 0.101
 
-### blade level severity, with CPTA (n=1573)
+## Blade level severity, with CPTA (n=1573)
 
 Severity at the blade level is the second part of the hurdle, so it is
 only modeled on the diseased blades.
@@ -164,7 +164,7 @@ proportion.
     ## 
     ## Conditional model:
     ##  Groups     Name        Variance Std.Dev.
-    ##  MeadowId   (Intercept) 0.19346  0.4398  
+    ##  MeadowId   (Intercept) 0.19347  0.4399  
     ##  TransectId (Intercept) 0.07419  0.2724  
     ## Number of obs: 1573, groups:  MeadowId, 27; TransectId, 155
     ## 
@@ -172,16 +172,16 @@ proportion.
     ## 
     ## Conditional model:
     ##                                   Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)                       -2.31500    0.10417 -22.224  < 2e-16 ***
-    ## sBladeArea                        -0.10551    0.05196  -2.031  0.04230 *  
-    ## sDensityShoots                     0.47659    0.14861   3.207  0.00134 ** 
-    ## sEpiphytePerAreaMean               0.20705    0.09710   2.132  0.03298 *  
-    ## sCDiffMeanHeat                     0.14484    0.10087   1.436  0.15104    
-    ## TidalHeightU                      -0.06829    0.07839  -0.871  0.38366    
-    ## sBladeArea:TidalHeightU           -0.02879    0.08313  -0.346  0.72910    
-    ## sDensityShoots:TidalHeightU       -0.39914    0.13702  -2.913  0.00358 ** 
-    ## sEpiphytePerAreaMean:TidalHeightU -0.18211    0.09808  -1.857  0.06336 .  
-    ## sCDiffMeanHeat:TidalHeightU        0.01541    0.07459   0.207  0.83634    
+    ## (Intercept)                       -2.30363    0.10580 -21.774  < 2e-16 ***
+    ## sBladeArea                        -0.09738    0.04796  -2.030  0.04231 *  
+    ## sDensityShoots                     0.43319    0.13508   3.207  0.00134 ** 
+    ## sEpiphytePerAreaMean               0.20449    0.09590   2.132  0.03298 *  
+    ## sCDiffMeanHeat                     0.13448    0.09366   1.436  0.15107    
+    ## TidalHeightU                      -0.04392    0.07683  -0.572  0.56756    
+    ## sBladeArea:TidalHeightU           -0.02657    0.07674  -0.346  0.72911    
+    ## sDensityShoots:TidalHeightU       -0.36279    0.12454  -2.913  0.00358 ** 
+    ## sEpiphytePerAreaMean:TidalHeightU -0.17984    0.09687  -1.857  0.06338 .  
+    ## sCDiffMeanHeat:TidalHeightU        0.01431    0.06926   0.207  0.83629    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -222,22 +222,22 @@ Also fit with beta regression.
     ## 
     ## Conditional model:
     ##  Groups     Name        Variance Std.Dev.
-    ##  Region     (Intercept) 0.02135  0.1461  
+    ##  Region     (Intercept) 0.02136  0.1461  
     ##  MeadowId   (Intercept) 0.20158  0.4490  
-    ##  TransectId (Intercept) 0.06602  0.2570  
+    ##  TransectId (Intercept) 0.06602  0.2569  
     ## Number of obs: 1853, groups:  Region, 6; MeadowId, 32; TransectId, 183
     ## 
     ## Overdispersion parameter for beta family (): 6.84 
     ## 
     ## Conditional model:
     ##                                   Estimate Std. Error z value Pr(>|z|)    
-    ## (Intercept)                       -2.20692    0.11384 -19.386  < 2e-16 ***
-    ## sBladeArea                        -0.13074    0.04888  -2.675  0.00748 ** 
-    ## sDensityShoots                     0.41230    0.14407   2.862  0.00421 ** 
-    ## sEpiphytePerAreaMean               0.20762    0.08406   2.470  0.01351 *  
-    ## TidalHeightU                      -0.09942    0.07012  -1.418  0.15626    
-    ## sDensityShoots:TidalHeightU       -0.34857    0.12800  -2.723  0.00646 ** 
-    ## sEpiphytePerAreaMean:TidalHeightU -0.17580    0.08336  -2.109  0.03495 *  
+    ## (Intercept)                       -2.22562    0.11305 -19.688  < 2e-16 ***
+    ## sBladeArea                        -0.11790    0.04408  -2.674  0.00748 ** 
+    ## sDensityShoots                     0.34906    0.12197   2.862  0.00421 ** 
+    ## sEpiphytePerAreaMean               0.20246    0.08197   2.470  0.01351 *  
+    ## TidalHeightU                      -0.07974    0.06876  -1.160  0.24617    
+    ## sDensityShoots:TidalHeightU       -0.29511    0.10837  -2.723  0.00647 ** 
+    ## sEpiphytePerAreaMean:TidalHeightU -0.17143    0.08129  -2.109  0.03495 *  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 

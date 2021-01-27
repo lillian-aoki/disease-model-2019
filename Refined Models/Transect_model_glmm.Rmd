@@ -41,6 +41,10 @@ transect$sEpiphytePerAreaMean <- scale(transect$EpiphytePerAreaMean,scale=TRUE,c
 transect$sCDiffMeanHeat <- scale(transect$CDiffMeanHeat,scale=TRUE,center=TRUE)
 dat <- transect[-which(is.na((transect$CDiffMeanHeat))),]
 dat$Region <- ordered(dat$Region,levels=region_order)
+dat$sBladeAreaMean <- scale(dat$BladeAreaMean,scale=TRUE,center=TRUE)
+dat$sDensityShootsMean <- scale(dat$DensityShootsMean,scale=TRUE,center=TRUE)
+dat$sEpiphytePerAreaMean <- scale(dat$EpiphytePerAreaMean,scale=TRUE,center=TRUE)
+dat$sCDiffMeanHeat <- scale(dat$CDiffMeanHeat,scale=TRUE,center=TRUE)
 
 # data exploration
 # transect_dat <- select(transect,c("TidalHeight","LongestBladeLengthMean","EpiphytePerAreaMean","CDiffMeanHeat",
@@ -155,6 +159,10 @@ sevT$MeadowId <- paste(sevT$Region,sevT$SiteCode,sep="_")
 sevT$TransectId <- paste(sevT$MeadowId,sevT$Transect,sep="_")
 
 sevTdat <- sevT[-which(is.na((sevT$CDiffMeanHeat))),]
+sevTdat$sBladeAreaMean <- scale(sevTdat$BladeArea,scale=TRUE,center=TRUE)
+sevTdat$sDensityShootsMean <- scale(sevTdat$DensityShoots,scale=TRUE,center=TRUE)
+sevTdat$sEpiphytePerAreaMean <- scale(sevTdat$EpiphytePerAreaMean,scale=TRUE,center=TRUE)
+sevTdat$sCDiffMeanHeat <- scale(sevTdat$CDiffMeanHeat,scale=TRUE,center=TRUE)
 
 ## fit with CPTA to start (data = sevTdat)
 # fit_sev1 <- glmmTMB(Severity~sBladeArea+sDensityShoots+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
