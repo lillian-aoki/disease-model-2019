@@ -62,8 +62,16 @@ fit_prev4 <- betareg(PrevalenceMean~CPTempAnomaly + BladeAreaMean + DensityShoot
                      data=dat,
                      weights = Count,
                      link = "logit")
+fit_prev5 <- betareg(PrevalenceMean~ BladeAreaMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+fit_prev6 <- betareg(PrevalenceMean~ DensityShootsMean|Region,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
 
-AIC(fit_prev1,fit_prev2,fit_prev3,fit_prev4)
+AIC(fit_prev1,fit_prev2,fit_prev3,fit_prev4,fit_prev5,fit_prev6)
 ```
 First model (cumulative anomaly and blade area) is substantially better by AIC.
 
@@ -163,12 +171,24 @@ fit_sev3 <- betareg(SeverityMean~CPTempAnomaly,
                      data=dat,
                      weights = Count,
                      link = "logit")
-fit_sev4 <- betareg(SeverityMean~ BladeAreaMean + DensityShootsMean,
+fit_sev4 <- betareg(SeverityMean~ CPTempAnomaly + BladeAreaMean + DensityShootsMean,
                      data=dat,
                      weights = Count,
                      link = "logit")
-AIC(fit_sev1,fit_sev2,fit_sev3,fit_sev4)
+fit_sev5 <- betareg(SeverityMean~ BladeAreaMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+fit_sev6 <- betareg(SeverityMean~ DensityShootsMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+AIC(fit_sev1,fit_sev2,fit_sev3,fit_sev4,fit_sev5,fit_sev6)
 ```
+Note, the model with three fixed predictors is better by AIC for severity. BUT this model is overfitted - the p-values are suddenly extremely small, including for CTempAnomaly. Which doesn't make sense. So I think we cannot have three predictors on this small of a dataset. 
+
+Second note, the models with shoot density are worse by AIC than models with blade area. Although these are different predictors (not nested) but I believe we can still do AIC, just not a log-likelihood.
+
 Use the same model as for prevalence (want to know if the same factors drive both).
 
 ```{r sev_model_eval,echo=FALSE}

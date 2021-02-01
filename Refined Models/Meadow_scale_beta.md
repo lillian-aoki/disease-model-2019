@@ -39,15 +39,25 @@ fit_prev4 <- betareg(PrevalenceMean~CPTempAnomaly + BladeAreaMean + DensityShoot
                      data=dat,
                      weights = Count,
                      link = "logit")
+fit_prev5 <- betareg(PrevalenceMean~ BladeAreaMean,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
+fit_prev6 <- betareg(PrevalenceMean~ DensityShootsMean|Region,
+                     data=dat,
+                     weights = Count,
+                     link = "logit")
 
-AIC(fit_prev1,fit_prev2,fit_prev3,fit_prev4)
+AIC(fit_prev1,fit_prev2,fit_prev3,fit_prev4,fit_prev5,fit_prev6)
 ```
 
-    ##           df       AIC
-    ## fit_prev1  4 -1629.784
-    ## fit_prev2  4 -1593.364
-    ## fit_prev3  3 -1573.029
-    ## fit_prev4  5 -1628.318
+    ##           df        AIC
+    ## fit_prev1  4 -1629.7837
+    ## fit_prev2  4 -1593.3638
+    ## fit_prev3  3 -1573.0289
+    ## fit_prev4  5 -1628.3182
+    ## fit_prev5  3  -260.1924
+    ## fit_prev6  8 -1313.7405
 
 First model (cumulative anomaly and blade area) is substantially better
 by AIC.
@@ -109,7 +119,18 @@ Repeat same analysis for severity
     ## fit_sev1  4 -10637.042
     ## fit_sev2  4  -9972.642
     ## fit_sev3  3  -9143.362
-    ## fit_sev4  4 -10871.712
+    ## fit_sev4  5 -10896.075
+    ## fit_sev5  3 -10636.573
+    ## fit_sev6  3  -9684.751
+
+Note, the model with three fixed predictors is better by AIC for
+severity. BUT this model is overfitted - the p-values are suddenly
+extremely small, including for CTempAnomaly. Which doesn’t make sense.
+So I think we cannot have three predictors on this small of a dataset.
+
+Second note, the models with shoot density are worse by AIC than models
+with blade area. Although these are different predictors (not nested)
+but I believe we can still do AIC, just not a log-likelihood.
 
 Use the same model as for prevalence (want to know if the same factors
 drive both).
