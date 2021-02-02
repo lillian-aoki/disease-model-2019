@@ -183,3 +183,9 @@ than the CPTA (which is non-sig anyway).
 
 Overall, CPTA was significant for determining prevalence but not for
 severity, which is significantly affected by blade area.
+
+### Figure for paper
+
+Making a nice looking figure for the paper woo
+
+![](Meadow_scale_beta_files/figure-gfm/figure_paper-1.png)<!-- -->

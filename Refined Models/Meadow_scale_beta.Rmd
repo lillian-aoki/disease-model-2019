@@ -11,6 +11,7 @@ library(tidyverse)
 library(betareg)
 library(performance)
 library(patchwork)
+library(cowplot)
 region_order <- c("AK","BC","WA","OR","BB","SD")
 
 ```
@@ -90,16 +91,16 @@ Both cumulative anomaly and blade area are significant. Visualize model by simul
 
 ```{r prev_model_viz,echo=FALSE,fig.width=5,fig.height=7}
 # First simulate change in CPTA
-jvaluesP <- with(dat, seq(from = min(CPTempAnomaly), to = max(CPTempAnomaly), length.out = 100))
+jvaluesPa <- with(dat, seq(from = min(CPTempAnomaly), to = max(CPTempAnomaly), length.out = 100))
 # create new data and hold blade area at the median value of the dataset (29.1 cm2)
-b.dataP <- data.frame(CPTempAnomaly=jvaluesP,BladeAreaMean=median(dat$BladeAreaMean))
-predP <- cbind(
-  response=predict(fit_prev1,newdata=b.dataP,type='response'),
-  variance=predict(fit_prev1,newdata=b.dataP,type='variance'),
-  predict(fit_prev1,newdata=b.dataP,type='quantile',at=c(0.025,0.975)))
-prev <- as.data.frame(predP)
-prev <- cbind(prev,b.dataP)
-a <- ggplot(prev,aes(x=CPTempAnomaly))+
+b.dataPa <- data.frame(CPTempAnomaly=jvaluesPa,BladeAreaMean=median(dat$BladeAreaMean))
+predPa <- cbind(
+  response=predict(fit_prev1,newdata=b.dataPa,type='response'),
+  variance=predict(fit_prev1,newdata=b.dataPa,type='variance'),
+  predict(fit_prev1,newdata=b.dataPa,type='quantile',at=c(0.025,0.975)))
+preva <- as.data.frame(predPa)
+preva <- cbind(preva,b.dataPa)
+a <- ggplot(preva,aes(x=CPTempAnomaly))+
   geom_line(aes(y=response))+
   geom_line(aes(y=q_0.025),linetype="dashed")+
   geom_line(aes(y=q_0.975),linetype="dashed")+
@@ -112,16 +113,16 @@ a <- ggplot(prev,aes(x=CPTempAnomaly))+
   theme(panel.grid = element_blank())
 
 # Next, repeat simulation but hold CPTA constant at median value (11.7 ºC)
-jvaluesP <- with(dat, seq(from = min(BladeAreaMean), to = max(BladeAreaMean), length.out = 100))
+jvaluesPb <- with(dat, seq(from = min(BladeAreaMean), to = max(BladeAreaMean), length.out = 100))
 # create new data and hold blade area at the median value of the dataset (29.1 cm2)
-b.dataP <- data.frame(BladeAreaMean=jvaluesP,CPTempAnomaly=median(dat$CPTempAnomaly))
-predP <- cbind(
-  response=predict(fit_prev1,newdata=b.dataP,type='response'),
-  variance=predict(fit_prev1,newdata=b.dataP,type='variance'),
-  predict(fit_prev1,newdata=b.dataP,type='quantile',at=c(0.025,0.975)))
-prev <- as.data.frame(predP)
-prev <- cbind(prev,b.dataP)
-b <- ggplot(prev,aes(x=BladeAreaMean))+
+b.dataPb <- data.frame(BladeAreaMean=jvaluesPb,CPTempAnomaly=median(dat$CPTempAnomaly))
+predPb <- cbind(
+  response=predict(fit_prev1,newdata=b.dataPb,type='response'),
+  variance=predict(fit_prev1,newdata=b.dataPb,type='variance'),
+  predict(fit_prev1,newdata=b.dataPb,type='quantile',at=c(0.025,0.975)))
+prevb <- as.data.frame(predPb)
+prevb <- cbind(prevb,b.dataPb)
+b <- ggplot(prevb,aes(x=BladeAreaMean))+
   geom_line(aes(y=response))+
   geom_line(aes(y=q_0.025),linetype="dashed")+
   geom_line(aes(y=q_0.975),linetype="dashed")+
@@ -205,15 +206,15 @@ Beach Haven residual is a bit of an outlier perhaps but otherwise no major issue
 Blade area is significant, CPTA is not. Visualize model by simulating fit across new data holding one variable constant at a time.
 
 ```{r sev_model_viz,echo=FALSE,fig.width=5,fig.height=7}
-jvaluesS <- with(dat, seq(from = min(BladeAreaMean), to = max(BladeAreaMean), length.out = 100))
-b.dataS <- data.frame(BladeAreaMean=jvaluesS,CPTempAnomaly=median(dat$CPTempAnomaly),Region="BC")
-predS <- cbind(
-  response=predict(fit_sev1,newdata=b.dataS,type='response'),
-  variance=predict(fit_sev1,newdata=b.dataS,type='variance'),
-  predict(fit_sev1,newdata=b.dataS,type='quantile',at=c(0.025,0.975)))
-sev <- as.data.frame(predS)
-sev <- cbind(sev,b.dataS)
-c <- ggplot(sev,aes(x=BladeAreaMean))+
+jvaluesSc <- with(dat, seq(from = min(BladeAreaMean), to = max(BladeAreaMean), length.out = 100))
+b.dataSc <- data.frame(BladeAreaMean=jvaluesSc,CPTempAnomaly=median(dat$CPTempAnomaly),Region="BC")
+predSc <- cbind(
+  response=predict(fit_sev1,newdata=b.dataSc,type='response'),
+  variance=predict(fit_sev1,newdata=b.dataSc,type='variance'),
+  predict(fit_sev1,newdata=b.dataSc,type='quantile',at=c(0.025,0.975)))
+sevc <- as.data.frame(predSc)
+sevc <- cbind(sevc,b.dataSc)
+c <- ggplot(sevc,aes(x=BladeAreaMean))+
   geom_line(aes(y=response))+
   geom_line(aes(y=q_0.025),linetype="dashed")+
   geom_line(aes(y=q_0.975),linetype="dashed")+
@@ -270,3 +271,87 @@ coefficients(fit_sev1)[3]*SDx2
 Here, the standardized coeff for blade area is 30x greater in magnitude than the CPTA (which is non-sig anyway).
 
 Overall, CPTA was significant for determining prevalence but not for severity, which is significantly affected by blade area.
+
+### Figure for paper
+
+Making a nice looking figure for the paper woo
+
+```{r figure_paper,fig.width=4.75,fig.height=5.5}
+a1 <- ggplot(preva,aes(x=CPTempAnomaly))+
+  geom_line(aes(y=response))+
+  geom_line(aes(y=q_0.025),linetype="dashed")+
+  geom_line(aes(y=q_0.975),linetype="dashed")+
+  geom_point(data=dat,aes(x=CPTempAnomaly,y=PrevalenceMean,color=Region),size=2)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+ 
+  scale_color_viridis_d()+
+  guides(color = guide_legend(nrow = 1))+
+  xlab("Cumulative positive \ntemperature anomaly (ºC)")+
+  ylab("Wasting disease prevalence\n (% individuals infected)")+
+  theme_bw(base_size = 9)+
+  theme(panel.grid = element_blank(),
+        legend.margin = margin(t=0,r=0,b=0,l=1,unit="pt"),
+        legend.key.size = unit(5,unit="mm"),
+        legend.text = element_text(size=8),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        legend.justification = "center",
+        legend.direction = "horizontal"
+        )
+b1 <-ggplot(prevb,aes(x=BladeAreaMean))+
+  geom_line(aes(y=response))+
+  geom_line(aes(y=q_0.025),linetype="dashed")+
+  geom_line(aes(y=q_0.975),linetype="dashed")+
+  geom_point(data=dat,aes(x=BladeAreaMean,y=PrevalenceMean,color=Region),size=2)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+ 
+  scale_color_viridis_d()+
+  xlab(expression("Blade Area (cm"^"2"~")"))+
+  ylab("Wasting disease prevalence\n (% individuals infected)")+
+  theme_bw(base_size = 9)+
+  theme(panel.grid = element_blank(),
+        legend.margin = margin(t=0,r=0,b=0,l=1,unit="pt"),
+        legend.key.size = unit(5,unit="mm"),
+        legend.title = element_blank(),
+        legend.position = "")
+c1 <- ggplot(sevc,aes(x=BladeAreaMean))+
+  geom_line(aes(y=response))+
+  geom_line(aes(y=q_0.025),linetype="dashed")+
+  geom_line(aes(y=q_0.975),linetype="dashed")+
+  geom_point(data=dat,aes(x=BladeAreaMean,y=SeverityMean,color=Region),size=2)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+ 
+  scale_color_viridis_d()+
+  xlab(expression("Blade Area (cm"^"2"~")"))+
+  ylab("Wasting disease severity\n (% blade area damaged)")+
+  theme_bw(base_size = 9)+
+  theme(panel.grid = element_blank(),
+        legend.margin = margin(t=0,r=0,b=0,l=1,unit="pt"),
+        legend.key.size = unit(5,unit="mm"),
+        legend.title = element_blank(),
+        legend.position = "")
+d1 <- ggplot()+
+  geom_point(data=dat,aes(x=CPTempAnomaly,y=SeverityMean,color=Region),size=2)+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+ 
+  scale_color_viridis_d()+
+  xlab("Cumulative positive \ntemperature anomaly (ºC)")+
+  ylab("Wasting disease severity\n (% blade area damaged)")+
+  theme_bw(base_size = 9)+
+  theme(panel.grid = element_blank(),
+        legend.margin = margin(t=0,r=0,b=0,l=1,unit="pt"),
+        legend.key.size = unit(5,unit="mm"),
+        legend.title = element_blank(),
+        legend.position = "")
+
+#pcombo <- a1 / b1
+#scombo <- d1 / c1 
+#(pcombo | scombo) + plot_layout(guides="collect") + plot_annotation(tag_levels = "A")
+
+## trying again with cowplot
+a1a <- a1 +theme(legend.position = "")
+legend <- get_legend(a1+theme(legend.box.margin = margin(6,0,0,0),
+                              legend.direction = "horizontal"))
+pcombo <- plot_grid(a1a,b1,nrow=2, labels=c("A","B"))
+scombo <- plot_grid(d1,c1,nrow=2, labels=c("C","D"))
+total <- plot_grid(pcombo,scombo,ncol=2)
+total_l <- plot_grid(total,legend,nrow=2,rel_heights = c(1,.1))
+total_l
+#plot_grid(a1,b1,c1,d1,nrow = 2,legend,rel_heights = c(1,.1))
+```
