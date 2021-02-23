@@ -59,7 +59,7 @@ fit_prev3 <- betareg(PrevalenceMean~CPTempAnomaly,
                      data=dat,
                      weights = Count,
                      link = "logit")
-fit_prev4 <- betareg(PrevalenceMean~CPTempAnomaly + BladeAreaMean + DensityShootsMean,
+fit_prev4 <- betareg(PrevalenceMean~ BladeAreaMean + DensityShootsMean,
                      data=dat,
                      weights = Count,
                      link = "logit")
@@ -67,7 +67,7 @@ fit_prev5 <- betareg(PrevalenceMean~ BladeAreaMean,
                      data=dat,
                      weights = Count,
                      link = "logit")
-fit_prev6 <- betareg(PrevalenceMean~ DensityShootsMean|Region,
+fit_prev6 <- betareg(PrevalenceMean~ DensityShootsMean,
                      data=dat,
                      weights = Count,
                      link = "logit")
@@ -172,7 +172,7 @@ fit_sev3 <- betareg(SeverityMean~CPTempAnomaly,
                      data=dat,
                      weights = Count,
                      link = "logit")
-fit_sev4 <- betareg(SeverityMean~ CPTempAnomaly + BladeAreaMean + DensityShootsMean,
+fit_sev4 <- betareg(SeverityMean~ BladeAreaMean + DensityShootsMean,
                      data=dat,
                      weights = Count,
                      link = "logit")

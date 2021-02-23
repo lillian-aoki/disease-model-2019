@@ -1,0 +1,408 @@
+---
+title: "Transect_glmm"
+author: "LRA"
+date: "1/26/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(TMB)
+library(glmmTMB)
+library(DHARMa)
+library(patchwork)
+library(performance)
+region_order <- c("AK","BC","WA","OR","BB","SD")
+
+```
+
+## Transect level models of disease
+
+Two sets of models, one with cumulative positive temperature anomaly as a predictor, one without.
+
+Best models are selected based on AIC and model weight within the model set.
+
+Because only 27 meadows out of 32 have SST data for the anomaly calculation, the number of replicates is smaller for those models.
+
+However, the significant effects are mainly the same across the models.
+
+Predictors are: Blade Area, Shoot Density, Epiphyte Mass per Blade Area, Cumulative positive anomaly, Tidal Height, and all interactions between Tidal Height and fixed effects.
+
+Random structure for transects is Meadow within Region. For the restircted dataset (SST sites only), Region as a random effect causes a singular model (not enough variaiton in Region, also the design is highly unbalanced). Therefore for those models, Region is not included. 
+
+Note, for severity, transect-level severity is summarized based on diseased blades only. Predictor values are the same.
+
+```{r data}
+transect <- read.csv("Refined Models/input/transect_combined_parameters.csv")
+transect$Region <- ordered(transect$Region,levels=region_order)
+transect$Meadow <- as.factor(transect$Meadow)
+transect$sBladeAreaMean <- scale(transect$BladeAreaMean,scale=TRUE,center=TRUE)
+transect$sDensityShootsMean <- scale(transect$DensityShootsMean,scale=TRUE,center=TRUE)
+transect$sEpiphytePerAreaMean <- scale(transect$EpiphytePerAreaMean,scale=TRUE,center=TRUE)
+transect$sCDiffMeanHeat <- scale(transect$CDiffMeanHeat,scale=TRUE,center=TRUE)
+dat <- transect[-which(is.na((transect$CDiffMeanHeat))),]
+dat$Region <- ordered(dat$Region,levels=region_order)
+dat$sBladeAreaMean <- scale(dat$BladeAreaMean,scale=TRUE,center=TRUE)
+dat$sDensityShootsMean <- scale(dat$DensityShootsMean,scale=TRUE,center=TRUE)
+dat$sEpiphytePerAreaMean <- scale(dat$EpiphytePerAreaMean,scale=TRUE,center=TRUE)
+dat$sCDiffMeanHeat <- scale(dat$CDiffMeanHeat,scale=TRUE,center=TRUE)
+
+# data exploration
+# transect_dat <- select(transect,c("TidalHeight","LongestBladeLengthMean","EpiphytePerAreaMean","CDiffMeanHeat",
+#                                   "DensityShootsMean","BladeAreaMean","PrevalenceMean","SeverityMean"))
+# transect_dat$TidalHeight <- as.factor(transect_dat$TidalHeight)
+# pairs(transect_dat)
+```
+
+## Prevalence model with CPTA n=162
+predictors: Density, Blade Area, Epiphyte mass per area, CPTA, Tidal height, and interactions between fixed effects and TH
+random structure: site within region
+
+```{r transect_prev_cpta_selection, echo=FALSE}
+fit_prev1s <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                      sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+sEpiphytePerAreaMean:TidalHeight+
+                        sCDiffMeanHeat:TidalHeight+
+                      +Region+(1|Meadow),
+                    data=dat,
+                    weights=CountBlades,
+                    family=binomial)
+
+# fixed effects are scaled for easier comparison and to avoid convergence issues
+# Note, Region as a random effect (1|Region) results in a singular model (variance of Region is 0)
+# This suggests the variation between regions is better explained in the residual than as a random effect (or maybe there are
+# not enough regions, although 6 should be sufficient)
+# fit_prev1s includes Region as a fixed effect
+# drop1(fit_prev1s)
+# # by AIC, dropping Region as a fixed effect improves the model by >2, therefore drop Region
+fit_prev2s <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                        sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                        sEpiphytePerAreaMean:TidalHeight+sCDiffMeanHeat:TidalHeight+
+                        (1|Meadow),
+                      data=dat,
+                      weights=CountBlades,
+                      family=binomial)
+
+ ### Model selection via AIC, using a priori model set
+ # remove blade area : tidal height interaction
+ fit_prev2.1s <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                        sDensityShootsMean:TidalHeight+
+                        sEpiphytePerAreaMean:TidalHeight+sCDiffMeanHeat:TidalHeight+
+                        (1|Meadow),
+                      data=dat,
+                      weights=CountBlades,
+                      family=binomial)
+ 
+ # remove shoot density : tidal height interaction
+fit_prev2.2s <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                        sBladeAreaMean:TidalHeight+
+                        sEpiphytePerAreaMean:TidalHeight+sCDiffMeanHeat:TidalHeight+
+                        (1|Meadow),
+                      data=dat,
+                      weights=CountBlades,
+                      family=binomial)
+  # remove epiphyte load : tidal height interaction
+fit_prev2.3s <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                        sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                        sCDiffMeanHeat:TidalHeight+
+                        (1|Meadow),
+                      data=dat,
+                      weights=CountBlades,
+                      family=binomial)
+ # remove cumulative anomaly : tidal height interaction
+ fit_prev2.4s <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                        sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                        sEpiphytePerAreaMean:TidalHeight+
+                        (1|Meadow),
+                      data=dat,
+                      weights=CountBlades,
+                      family=binomial)
+ # no interactions
+ fit_prev2.5s <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                       (1|Meadow),
+                     data=dat,
+                     weights=CountBlades,
+                     family=binomial)
+ # no tidal height (or interactions)
+ fit_prev2.6s <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+
+                       (1|Meadow),
+                     data=dat,
+                     weights=CountBlades,
+                     family=binomial)
+
+ df.AIC <- data.frame(AIC(fit_prev2s,fit_prev2.1s,fit_prev2.2s,fit_prev2.3s,fit_prev2.4s,
+     fit_prev2.5s,fit_prev2.6s))
+ df.AIC$deltaAIC <- df.AIC$AIC-min(df.AIC$AIC)
+ df.AIC$likelihood <- exp(-df.AIC$deltaAIC/2)
+ df.AIC$weight <- df.AIC$likelihood/sum(df.AIC$likelihood)
+ df.AIC
+# Based on AIC and model weights, best model is fit_prev2.1s, second model (no blade area:tidal height interaction)
+```
+Based on AIC and model weights, best model is fit_prev2.1s, second model (no blade area:tidal height interaction)
+
+Now need to validate the model and record output
+
+```{r transect_prev_cpta_output, echo=FALSE}
+ 
+# Assess the model residuals 
+E2.sim <- simulateResiduals(fit_prev2.1s)
+plot(E2.sim)
+plot(E2.sim$scaledResiduals~dat$sBladeAreaMean)
+plot(E2.sim$scaledResiduals~dat$sDensityShootsMean)
+plot(E2.sim$scaledResiduals~dat$sCDiffMeanHeat)
+plot(E2.sim$scaledResiduals~as.factor(dat$TidalHeight))
+
+# Look at the model output, performance metrics
+summary(fit_prev2.1s)
+performance(fit_prev2.1s)
+```
+ Some issues with the uniformity of the simulated residuals, but there's not significant dispersion so it is probably okay to use the model. 
+ 
+ 
+##  Transect-level prevalence model, for all transects, no CPTA, n=192
+```{r transect_prev_all_selection}
+transect$Meadow <- paste(transect$Region,transect$SiteCode,sep="_")
+fit_prev5 <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+sEpiphytePerAreaMean:TidalHeight+
+                       +(1|Region)+(1|Meadow),
+                     data=transect,
+                     weights=CountBlades,
+                     family=binomial)
+
+# summary(fit_prev5)
+# no issue with Region as a random effect for the full dataset (more balanced?)
+
+### Model selection by AIC
+ # remove blade area : tidal height interaction
+ fit_prev5.1 <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       sDensityShootsMean:TidalHeight+sEpiphytePerAreaMean:TidalHeight+
+                       +(1|Region)+(1|Meadow),
+                     data=transect,
+                     weights=CountBlades,
+                     family=binomial)
+ 
+ # remove shoot density : tidal height interaction
+fit_prev5.2 <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       sBladeAreaMean:TidalHeight+sEpiphytePerAreaMean:TidalHeight+
+                       +(1|Region)+(1|Meadow),
+                     data=transect,
+                     weights=CountBlades,
+                     family=binomial)
+  # remove epiphyte load : tidal height interaction
+fit_prev5.3 <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                       +(1|Region)+(1|Meadow),
+                     data=transect,
+                     weights=CountBlades,
+                     family=binomial)
+ # no interactions
+ fit_prev5.4 <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       +(1|Region)+(1|Meadow),
+                     data=transect,
+                     weights=CountBlades,
+                     family=binomial)
+ # no tidal height (or interactions)
+ fit_prev5.5 <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+
+                       +(1|Region)+(1|Meadow),
+                     data=transect,
+                     weights=CountBlades,
+                     family=binomial)
+ 
+ df.AIC <- AIC(fit_prev5,fit_prev5.1,fit_prev5.2,fit_prev5.3,fit_prev5.4,fit_prev5.5)
+ df.AIC$deltaAIC <- df.AIC$AIC-min(df.AIC$AIC)
+ df.AIC$likelihood <- exp(-df.AIC$deltaAIC/2)
+ df.AIC$weight <- df.AIC$likelihood/sum(df.AIC$likelihood)
+ df.AIC
+```
+By AIC and weight, model 5.1 is the best-fitting (no blade area interaction with tidal height).
+
+```{r transect_prev_all_output, echo=FALSE}
+ 
+# Assess the model residuals 
+E5.sim <- simulateResiduals(fit_prev5.1)
+plot(E5.sim)
+plot(E5.sim$scaledResiduals~transect$sBladeAreaMean)
+plot(E5.sim$scaledResiduals~transect$sDensityShootsMean)
+plot(E5.sim$scaledResiduals~as.factor(transect$TidalHeight))
+
+# Look at the model output, performance metrics
+summary(fit_prev5.1)
+performance(fit_prev5.1)
+```
+
+## Transect level severity with CPTA n = 155
+```{r transect_sev_cpta_selection}
+# transect-level severity means are calculated using hurdle approach (only diseased blades are included)
+# nine transects had zero diseaed blades, so exclude those nine for the base severity dataset
+sevT <- subset(transect,SeverityMean>0)
+sevTdat <- sevT[-which(is.na((sevT$CDiffMeanHeat))),]
+
+## fit with CPTA to start (data = sevTdat)
+# fit_sev1 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+#                       sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+#                      sEpiphytePerAreaMean:TidalHeight+sCDiffMeanHeat:TidalHeight+
+#                       (1|Region)+(1|Meadow),
+#                     data=sevTdat,
+#                     family=beta_family(link = "logit"))
+# summary(fit_sev1)
+# # again Region variance is 0 because of unevenness, can try fitting Region as a fixed effect but this increases the AIC
+#  fit_sev2 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+#                        sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+#                        sEpiphytePerAreaMean:TidalHeight+sCDiffMeanHeat:TidalHeight+
+#                        Region+(1|Meadow),
+#                      data=sevTdat,
+#                      family=beta_family(link = "logit"))
+#  summary(fit_sev2)
+# drop1(fit_sev2)
+# drop Region from the model
+fit_sev3 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                       sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                       sEpiphytePerAreaMean:TidalHeight+sCDiffMeanHeat:TidalHeight+
+                      (1|Meadow),
+                    data=sevTdat,
+                    family=beta_family(link = "logit"))
+# summary(fit_sev3)
+# Model selection via AIC
+ # remove blade area : tidal height interaction
+ fit_sev3.1s <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                       sDensityShootsMean:TidalHeight+
+                       sEpiphytePerAreaMean:TidalHeight+sCDiffMeanHeat:TidalHeight+
+                      (1|Meadow),
+                      data=sevTdat,
+                    family=beta_family(link = "logit"))
+ 
+ # remove shoot density : tidal height interaction
+fit_sev3.2s <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                       sBladeAreaMean:TidalHeight+
+                       sEpiphytePerAreaMean:TidalHeight+sCDiffMeanHeat:TidalHeight+
+                      (1|Meadow),
+                      data=sevTdat,
+                    family=beta_family(link = "logit"))
+  # remove epiphyte load : tidal height interaction
+fit_sev3.3s <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                       sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                       sCDiffMeanHeat:TidalHeight+
+                      (1|Meadow),
+                      data=sevTdat,
+                    family=beta_family(link = "logit"))
+ # remove cumulative anomaly : tidal height interaction
+ fit_sev3.4s <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                       sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                       sEpiphytePerAreaMean:TidalHeight+
+                      (1|Meadow),
+                      data=sevTdat,
+                    family=beta_family(link = "logit"))
+ # no interactions
+ fit_sev3.5s <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+TidalHeight+
+                       (1|Meadow),
+                     data=sevTdat,
+                    family=beta_family(link = "logit"))
+ # no tidal height (or interactions)
+ fit_sev3.6s <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+sCDiffMeanHeat+
+                      (1|Meadow),
+                     data=sevTdat,
+                    family=beta_family(link = "logit"))
+ df.AIC <- AIC(fit_sev3,fit_sev3.1s,fit_sev3.2s,fit_sev3.3s,fit_sev3.4s,fit_sev3.5s,fit_sev3.6s)
+ df.AIC$deltaAIC <- df.AIC$AIC-min(df.AIC$AIC)
+ df.AIC$likelihood <- exp(-df.AIC$deltaAIC/2)
+ df.AIC$weight <- df.AIC$likelihood/sum(df.AIC$likelihood)
+ df.AIC
+```
+By AIC and weight, the best model is fit_sev3.6 (no tidal height and no interactions)
+
+```{r transect_sev_cpta_output}
+# Assess the model residuals 
+E3.sim <- simulateResiduals(fit_sev3.6s)
+plot(E3.sim)
+plot(E3.sim$scaledResiduals~sevTdat$sBladeAreaMean)
+plot(E3.sim$scaledResiduals~sevTdat$sDensityShootsMean)
+plot(E3.sim$scaledResiduals~sevTdat$sEpiphytePerAreaMean)
+plot(E3.sim$scaledResiduals~as.factor(sevTdat$TidalHeight))
+plot(E3.sim$scaledResiduals~sevTdat$sCDiffMeanHeat)
+
+# Look at the model output, performance metrics
+summary(fit_sev3.6s)
+performance(fit_sev3.6s)
+```
+## Transect level severity without CPTA n = 183 ##### 
+```{r transect_sev_all_selection}
+# fit models using sevT, all transects, no CPTA 
+# fit_sev1 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+#                        sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+#                        sEpiphytePerAreaMean:TidalHeight+
+#                       (1|Region)+(1|Meadow),
+#                     data=sevT,
+#                     family=beta_family(link = "logit"))
+# # summary(fit_sev1)
+# # Region is also close to zero, try as fixed effect but it increases AIC
+# fit_sev2 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+#                        sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+#                        sEpiphytePerAreaMean:TidalHeight+
+#                       Region+(1|Meadow),
+#                     data=sevT,
+#                     family=beta_family(link = "logit"))
+# drop1(fit_sev2)
+# drop Region
+# basic model for selection
+fit_sev4 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                       sEpiphytePerAreaMean:TidalHeight+
+                      (1|Meadow),
+                    data=sevT,
+                    family=beta_family(link = "logit"))
+
+ # Model selection
+ # remove blade area : tidal height interaction
+ fit_sev4.1 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       sDensityShootsMean:TidalHeight+
+                       sEpiphytePerAreaMean:TidalHeight+
+                      (1|Meadow),
+                    data=sevT,
+                    family=beta_family(link = "logit"))
+ 
+ # remove shoot density : tidal height interaction
+fit_sev4.2 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       sBladeAreaMean:TidalHeight+
+                       sEpiphytePerAreaMean:TidalHeight+
+                      (1|Meadow),
+                    data=sevT,
+                    family=beta_family(link = "logit"))
+  # remove epiphyte load : tidal height interaction
+fit_sev4.3 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                       sBladeAreaMean:TidalHeight+sDensityShootsMean:TidalHeight+
+                       (1|Meadow),
+                    data=sevT,
+                    family=beta_family(link = "logit"))
+ # no interactions
+ fit_sev4.4 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+TidalHeight+
+                      (1|Meadow),
+                    data=sevT,
+                    family=beta_family(link = "logit"))
+ 
+ # no tidal height (or interactions)
+ fit_sev4.5 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePerAreaMean+
+                      (1|Meadow),
+                    data=sevT,
+                    family=beta_family(link = "logit"))
+ df.AIC <- AIC(fit_sev4,fit_sev4.1,fit_sev4.2,fit_sev4.3,fit_sev4.4,
+     fit_sev4.5)
+ df.AIC$deltaAIC <- df.AIC$AIC-min(df.AIC$AIC)
+ df.AIC$likelihood <- exp(-df.AIC$deltaAIC/2)
+ df.AIC$weight <- df.AIC$likelihood/sum(df.AIC$likelihood)
+ df.AIC
+```
+By AIC and weight, best model is fit_sev4.1, no blade area: tidal height interaction
+
+```{r transect_sev_all_output}
+# Assess the model residuals 
+E4.sim <- simulateResiduals(fit_sev4.1)
+plot(E4.sim)
+plot(E4.sim$scaledResiduals~sevT$sBladeAreaMean)
+plot(E4.sim$scaledResiduals~sevT$sDensityShootsMean)
+plot(E4.sim$scaledResiduals~sevT$sEpiphytePerAreaMean)
+plot(E4.sim$scaledResiduals~as.factor(sevT$TidalHeight))
+
+# Look at the model output, performance metrics
+summary(fit_sev4.1)
+performance(fit_sev4.1)
+```
