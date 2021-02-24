@@ -174,7 +174,7 @@ p1+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
   scale_y_log10(limits=c(0.2,5))+
   scale_color_manual(values=c("grey50","black"))+
-  ylab("Scaled odds ratio estimates")+
+  ylab("Scaled estimates of \n disease prevalence odds ratio")+
   #xlab("Scaled parameters")+
   labs(tag="A")+
   theme(panel.grid = element_blank(),
@@ -272,7 +272,7 @@ p2+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
   scale_y_log10(limits=c(0.2,4))+
   scale_color_manual(values=c("black"))+
-  ylab("Scaled odds ratio estimates")+
+  ylab("Scaled estimates of \ndisease prevalence odds ratio")+
   labs(tag = "C")+
   #xlab("Scaled parameters")+
   theme(panel.grid = element_blank(),
@@ -394,7 +394,7 @@ s_cpta_plot+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
   scale_y_log10(limits=c(0.2,5))+
   scale_color_manual(values=c("black","grey50"))+
-  ylab("Scaled estimates of \ndisease severity ratio")+
+  ylab("Scaled estimates of \ndisease severity odds ratio")+
   labs(tag="B")+
   theme(panel.grid = element_blank(),
         #plot.margin = margin(0,0,0,0,unit="pt"),
@@ -503,7 +503,7 @@ s_all_plot+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
   scale_y_log10(limits=c(0.2,5))+
   scale_color_manual(values=c("black","grey50"))+
-  ylab("Scaled estimates of \ndisease severity ratio")+
+  ylab("Scaled estimates of \ndisease severity odds ratio")+
   labs(tag="D")+
   theme(panel.grid = element_blank(),
         #plot.margin = margin(0,0,0,0,unit="pt"),
