@@ -91,6 +91,9 @@ Now need to validate the model and record output
     ## ---------------------------------------------------------------------------
     ## 988.30 | 1019.17 |       0.36 |       0.13 | 0.26 | 0.15 |  1.00 |     0.13
 
+    ## Scale for 'y' is already present. Adding another scale for 'y', which will
+    ## replace the existing scale.
+
     ## Scale for 'colour' is already present. Adding another scale for 'colour',
     ## which will replace the existing scale.
 
@@ -158,6 +161,9 @@ interaction with tidal height).
     ## ----------------------------------------------------------------------------
     ## 1149.98 | 1179.30 |       0.37 |       0.02 | 0.35 | 0.15 |  1.00 |     0.13
 
+    ## Scale for 'y' is already present. Adding another scale for 'y', which will
+    ## replace the existing scale.
+
     ## Scale for 'colour' is already present. Adding another scale for 'colour',
     ## which will replace the existing scale.
 
@@ -222,6 +228,9 @@ interactions)
     ## -----------------------------------------------------------------
     ## -496.31 | -475.01 |       0.53 |       0.21 | 0.40 | 0.06 | 22.84
 
+    ## Scale for 'y' is already present. Adding another scale for 'y', which will
+    ## replace the existing scale.
+
     ## Scale for 'colour' is already present. Adding another scale for 'colour',
     ## which will replace the existing scale.
 
@@ -285,6 +294,9 @@ height interaction
     ## AIC     |     BIC | R2 (cond.) | R2 (marg.) |  ICC | RMSE | Sigma
     ## -----------------------------------------------------------------
     ## -577.67 | -548.79 |       0.63 |       0.29 | 0.48 | 0.05 | 25.52
+
+    ## Scale for 'y' is already present. Adding another scale for 'y', which will
+    ## replace the existing scale.
 
     ## Scale for 'colour' is already present. Adding another scale for 'colour',
     ## which will replace the existing scale.

@@ -143,7 +143,7 @@ Based on AIC and model weights, best model is fit_prev2.1s, second model (no bla
 
 Now need to validate the model and record output
 
-```{r transect_prev_cpta_output, echo=FALSE}
+```{r transect_prev_cpta_output, echo=FALSE,fig.width=4,fig.height=4}
  
 # Assess the model residuals 
 E2.sim <- simulateResiduals(fit_prev2.1s)
@@ -172,10 +172,13 @@ p1 <- plot_model(fit_prev2.1s,
            )
 p1+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
+  scale_y_log10(limits=c(0.2,5))+
   scale_color_manual(values=c("grey50","black"))+
   ylab("Scaled odds ratio estimates")+
   #xlab("Scaled parameters")+
+  labs(tag="A")+
   theme(panel.grid = element_blank(),
+        #plot.margin = margin(0,0,0,0,unit="pt"),
         axis.text = element_text(size=10))
 
 ```
@@ -241,7 +244,7 @@ fit_prev5.3 <- glmmTMB(PrevalenceMean~sBladeAreaMean+sDensityShootsMean+sEpiphyt
 ```
 By AIC and weight, model 5.1 is the best-fitting (no blade area interaction with tidal height).
 
-```{r transect_prev_all_output, echo=FALSE}
+```{r transect_prev_all_output, echo=FALSE,fig.width=4,fig.height=4}
  
 # Assess the model residuals 
 E5.sim <- simulateResiduals(fit_prev5.1)
@@ -267,11 +270,13 @@ p2 <- plot_model(fit_prev5.1,
            )
 p2+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
-  #scale_y_continuous(limits=c(0.2,4))+
+  scale_y_log10(limits=c(0.2,4))+
   scale_color_manual(values=c("black"))+
   ylab("Scaled odds ratio estimates")+
+  labs(tag = "C")+
   #xlab("Scaled parameters")+
   theme(panel.grid = element_blank(),
+        #plot.margin = margin(0,0,0,0,unit="pt"),
         axis.text = element_text(size=10))
 
 ```
@@ -359,7 +364,7 @@ fit_sev3.3s <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphyteP
 ```
 By AIC and weight, the best model is fit_sev3.6 (no tidal height and no interactions)
 
-```{r transect_sev_cpta_output}
+```{r transect_sev_cpta_output,fig.width=4,fig.height=4}
 # Assess the model residuals 
 E3.sim <- simulateResiduals(fit_sev3.6s)
 plot(E3.sim)
@@ -387,9 +392,12 @@ s_cpta_plot <- plot_model(fit_sev3.6s,
            )
 s_cpta_plot+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
+  scale_y_log10(limits=c(0.2,5))+
   scale_color_manual(values=c("black","grey50"))+
-  ylab("Scaled estimates of disease severity ratio")+
+  ylab("Scaled estimates of \ndisease severity ratio")+
+  labs(tag="B")+
   theme(panel.grid = element_blank(),
+        #plot.margin = margin(0,0,0,0,unit="pt"),
         axis.text = element_text(size=10))
 
 ```
@@ -464,7 +472,7 @@ fit_sev4.3 <- glmmTMB(SeverityMean~sBladeAreaMean+sDensityShootsMean+sEpiphytePe
 ```
 By AIC and weight, best model is fit_sev4.1, no blade area: tidal height interaction
 
-```{r transect_sev_all_output}
+```{r transect_sev_all_output,fig.width=4,fig.height=4}
 # Assess the model residuals 
 E4.sim <- simulateResiduals(fit_sev4.1)
 plot(E4.sim)
@@ -493,9 +501,12 @@ s_all_plot <- plot_model(fit_sev4.1,
            )
 s_all_plot+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
+  scale_y_log10(limits=c(0.2,5))+
   scale_color_manual(values=c("black","grey50"))+
-  ylab("Scaled estimates of disease severity ratio")+
+  ylab("Scaled estimates of \ndisease severity ratio")+
+  labs(tag="D")+
   theme(panel.grid = element_blank(),
+        #plot.margin = margin(0,0,0,0,unit="pt"),
         axis.text = element_text(size=10))
 ```
 
