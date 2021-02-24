@@ -13,6 +13,7 @@ library(glmmTMB)
 library(DHARMa)
 library(patchwork)
 library(performance)
+library(sjPlot)
 region_order <- c("AK","BC","WA","OR","BB","SD")
 
 ```
@@ -155,9 +156,33 @@ plot(E2.sim$scaledResiduals~as.factor(dat$TidalHeight))
 # Look at the model output, performance metrics
 summary(fit_prev2.1s)
 performance(fit_prev2.1s)
+
+## Visualize the best-fitting model output
+p1names <- c("Cumulative SST anomaly * Tidal height (upper)", "Epiphyte load * Tidal height (upper)",
+             "Shoot density * Tidal height (upper)",
+             "Tidal height (upper)","Cumulative SST anomaly","Epiphyte load","Shoot density","Leaf area")
+p1 <- plot_model(fit_prev2.1s,
+           axis.labels = p1names,
+           title="",
+           show.p = TRUE,
+           show.values = TRUE,
+           value.offset = 0.3,
+           axis.lim = c(0.2,5),
+           group.terms = c(1,2,1,2,1,2,1,2)
+           )
+p1+theme_bw()+
+  geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
+  scale_color_manual(values=c("grey50","black"))+
+  ylab("Scaled odds ratio estimates")+
+  #xlab("Scaled parameters")+
+  theme(panel.grid = element_blank(),
+        axis.text = element_text(size=10))
+
 ```
- Some issues with the uniformity of the simulated residuals, but there's not significant dispersion so it is probably okay to use the model. 
+
+Some issues with the uniformity of the simulated residuals, but there's not significant dispersion so it is probably okay to use the model. 
  
+Scaled odds ratio estimates indicate the change in odds of disease prevalence, given a change of 1 SD of the predictor. E.g. for a given transect, an increase of 1 SD of the cumulative SST anomaly means the transect is 2.46 times more likely to be diseased. 
  
 ##  Transect-level prevalence model, for all transects, no CPTA, n=192
 ```{r transect_prev_all_selection}
@@ -228,7 +253,31 @@ plot(E5.sim$scaledResiduals~as.factor(transect$TidalHeight))
 # Look at the model output, performance metrics
 summary(fit_prev5.1)
 performance(fit_prev5.1)
+## Visualize the best-fitting model output
+p2names <- c("Epiphyte load * Tidal height (upper)","Shoot density * Tidal height (upper)",
+             "Tidal height (upper)","Epiphyte load","Shoot density","Leaf area")
+p2 <- plot_model(fit_prev5.1,
+           axis.labels = p2names,
+           title="",
+           show.p = TRUE,
+           show.values = TRUE,
+           value.offset = 0.3,
+           axis.lim = c(0.2,10),
+           group.terms = c(1,1,1,1,1,1)
+           )
+p2+theme_bw()+
+  geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
+  #scale_y_continuous(limits=c(0.2,4))+
+  scale_color_manual(values=c("black"))+
+  ylab("Scaled odds ratio estimates")+
+  #xlab("Scaled parameters")+
+  theme(panel.grid = element_blank(),
+        axis.text = element_text(size=10))
+
 ```
+Scaled odds ratio estimates indicate the change in odds of disease prevalence, given a change of 1 SD of the predictor. E.g. for a given transect, an increase of 1 SD of the shoot density means the transect is 1.7 times more likely to be diseased.
+
+Same parameter estimates for the models with and without CPTA (restricted vs not restricted), but restricted model has a higher marginal R2. Therefore, temperature is perhaps important for explaining the prevalence dynamics.
 
 ## Transect level severity with CPTA n = 155
 ```{r transect_sev_cpta_selection}
@@ -323,7 +372,29 @@ plot(E3.sim$scaledResiduals~sevTdat$sCDiffMeanHeat)
 # Look at the model output, performance metrics
 summary(fit_sev3.6s)
 performance(fit_sev3.6s)
+## Visualize the best-fitting model output
+s_cpta_names <- c("Cumulative SST anomaly","Epiphyte load","Shoot density","Leaf area")
+s_cpta_plot <- plot_model(fit_sev3.6s,
+           axis.labels = s_cpta_names,
+           title="",
+           show.p = TRUE,
+           show.values = TRUE,
+           value.offset = 0.3,
+            #transform = NULL
+           #axis.lim = c(0.1,10),
+           
+           group.terms = c(1,2,2,2)
+           )
+s_cpta_plot+theme_bw()+
+  geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
+  scale_color_manual(values=c("black","grey50"))+
+  ylab("Scaled estimates of disease severity ratio")+
+  theme(panel.grid = element_blank(),
+        axis.text = element_text(size=10))
+
 ```
+In contrast to prevalence models, severity model is beta regression, so the scaled parameter estimates estimate the change in the ratio of proportions, rather than the ratio of probabilities (odds). E.g. for an increase in leaf area of 1 SD, the ratio of diseased to non-diseased tissue will change by a factor of 0.70. Only leaf area is significant; effect sizes are smaller and non-significant for other predictors, including cumulative SST anomaly. 
+
 ## Transect level severity without CPTA n = 183 ##### 
 ```{r transect_sev_all_selection}
 # fit models using sevT, all transects, no CPTA 
@@ -405,4 +476,29 @@ plot(E4.sim$scaledResiduals~as.factor(sevT$TidalHeight))
 # Look at the model output, performance metrics
 summary(fit_sev4.1)
 performance(fit_sev4.1)
+
+## Visualize the best-fitting model output
+s_all_names <- c("Epiphyte load * Tidal height (upper)","Shoot density * Tidal height (upper)",
+                "Tidal height (upper)","Epiphyte load","Shoot density","Leaf area")
+s_all_plot <- plot_model(fit_sev4.1,
+           axis.labels = s_all_names,
+           title="",
+           show.p = TRUE,
+           show.values = TRUE,
+           value.offset = 0.3,
+            #transform = NULL
+           #axis.lim = c(0.1,10),
+           
+           group.terms = c(1,1,2,2,1,2)
+           )
+s_all_plot+theme_bw()+
+  geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
+  scale_color_manual(values=c("black","grey50"))+
+  ylab("Scaled estimates of disease severity ratio")+
+  theme(panel.grid = element_blank(),
+        axis.text = element_text(size=10))
 ```
+
+Scaled estimates indicate change in the ratio of diseased tissue to non-diseased tissue. For a 1 SD increase in shoot density, the ratio of diseased tissue to non-diseased tissue changes by a factor of 1.84. 
+
+Same estimate for leaf area but for the unrestricted dataset (all transects), shoot density is significant. 

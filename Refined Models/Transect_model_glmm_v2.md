@@ -91,8 +91,18 @@ Now need to validate the model and record output
     ## ---------------------------------------------------------------------------
     ## 988.30 | 1019.17 |       0.36 |       0.13 | 0.26 | 0.15 |  1.00 |     0.13
 
+    ## Scale for 'colour' is already present. Adding another scale for 'colour',
+    ## which will replace the existing scale.
+
+![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_cpta_output-6.png)<!-- -->
+
 Some issues with the uniformity of the simulated residuals, but there’s
 not significant dispersion so it is probably okay to use the model.
+
+Scaled odds ratio estimates indicate the change in odds of disease
+prevalence, given a change of 1 SD of the predictor. E.g. for a given
+transect, an increase of 1 SD of the cumulative SST anomaly means the
+transect is 2.46 times more likely to be diseased.
 
 ## Transect-level prevalence model, for all transects, no CPTA, n=192
 
@@ -107,7 +117,7 @@ not significant dispersion so it is probably okay to use the model.
 By AIC and weight, model 5.1 is the best-fitting (no blade area
 interaction with tidal height).
 
-![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-1.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-2.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-3.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-4.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-5.png)<!-- -->
+![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-1.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-2.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-3.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-4.png)<!-- -->
 
     ##  Family: binomial  ( logit )
     ## Formula:          
@@ -148,6 +158,20 @@ interaction with tidal height).
     ## ----------------------------------------------------------------------------
     ## 1149.98 | 1179.30 |       0.37 |       0.02 | 0.35 | 0.15 |  1.00 |     0.13
 
+    ## Scale for 'colour' is already present. Adding another scale for 'colour',
+    ## which will replace the existing scale.
+
+![](Transect_model_glmm_v2_files/figure-gfm/transect_prev_all_output-5.png)<!-- -->
+Scaled odds ratio estimates indicate the change in odds of disease
+prevalence, given a change of 1 SD of the predictor. E.g. for a given
+transect, an increase of 1 SD of the shoot density means the transect is
+1.7 times more likely to be diseased.
+
+Same parameter estimates for the models with and without CPTA
+(restricted vs not restricted), but restricted model has a higher
+marginal R2. Therefore, temperature is perhaps important for explaining
+the prevalence dynamics.
+
 ## Transect level severity with CPTA n = 155
 
     ##             df       AIC  deltaAIC likelihood     weight
@@ -162,7 +186,7 @@ interaction with tidal height).
 By AIC and weight, the best model is fit\_sev3.6 (no tidal height and no
 interactions)
 
-![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-1.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-2.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-3.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-4.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-5.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-6.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-7.png)<!-- -->
+![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-1.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-2.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-3.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-4.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-5.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-6.png)<!-- -->
 
     ##  Family: beta  ( logit )
     ## Formula:          
@@ -198,6 +222,18 @@ interactions)
     ## -----------------------------------------------------------------
     ## -496.31 | -475.01 |       0.53 |       0.21 | 0.40 | 0.06 | 22.84
 
+    ## Scale for 'colour' is already present. Adding another scale for 'colour',
+    ## which will replace the existing scale.
+
+![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_cpta_output-7.png)<!-- -->
+In contrast to prevalence models, severity model is beta regression, so
+the scaled parameter estimates estimate the change in the ratio of
+proportions, rather than the ratio of probabilities (odds). E.g. for an
+increase in leaf area of 1 SD, the ratio of diseased to non-diseased
+tissue will change by a factor of 0.70. Only leaf area is significant;
+effect sizes are smaller and non-significant for other predictors,
+including cumulative SST anomaly.
+
 ## Transect level severity without CPTA n = 183
 
     ##            df       AIC deltaAIC likelihood     weight
@@ -211,7 +247,7 @@ interactions)
 By AIC and weight, best model is fit\_sev4.1, no blade area: tidal
 height interaction
 
-![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-1.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-2.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-3.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-4.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-5.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-6.png)<!-- -->
+![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-1.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-2.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-3.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-4.png)<!-- -->![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-5.png)<!-- -->
 
     ##  Family: beta  ( logit )
     ## Formula:          
@@ -249,3 +285,15 @@ height interaction
     ## AIC     |     BIC | R2 (cond.) | R2 (marg.) |  ICC | RMSE | Sigma
     ## -----------------------------------------------------------------
     ## -577.67 | -548.79 |       0.63 |       0.29 | 0.48 | 0.05 | 25.52
+
+    ## Scale for 'colour' is already present. Adding another scale for 'colour',
+    ## which will replace the existing scale.
+
+![](Transect_model_glmm_v2_files/figure-gfm/transect_sev_all_output-6.png)<!-- -->
+
+Scaled estimates indicate change in the ratio of diseased tissue to
+non-diseased tissue. For a 1 SD increase in shoot density, the ratio of
+diseased tissue to non-diseased tissue changes by a factor of 1.84.
+
+Same estimate for leaf area but for the unrestricted dataset (all
+transects), shoot density is significant.
