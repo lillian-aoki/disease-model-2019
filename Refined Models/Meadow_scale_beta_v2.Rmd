@@ -101,7 +101,7 @@ meadow_plot+theme_bw()+
   geom_hline(yintercept = 1,linetype="dashed",color="darkgrey")+
   scale_y_log10(limits=c(0.5,2.4))+
   scale_color_manual(values=c("black"))+
-  ylab("Scaled odds ratio estimates")+
+  ylab("Scaled estimates of \ndisease prevalence odds ratio")+
   labs(tag="A")+
   #xlab("Scaled parameters")+
   theme(panel.grid = element_blank(),
@@ -238,7 +238,7 @@ meadow_plot2 <- plot_model(fit_sev1,
            title="",
            show.p = TRUE,
            show.values = TRUE,
-           value.offset = 0.1,
+           value.offset = 0.2,
            #axis.lim = c(0.2,5),
            group.terms = c(1,2)
            )
