@@ -167,7 +167,7 @@ performance(fit_prev3.3)
 ## Visualize the best-fitting model output
 p_cpta_names <- c("Cumulative SST anomaly * Tidal height (upper)",
                   "Shoot density * Tidal height (upper)", "Leaf area * Tidal height (upper)",
-                  "Tidal height (upper)", "Cumulative SST anomaly","Epiphyte load","Shoot density","Leaf area")
+                  "Tidal height (upper)", "Cumulative SST anomaly","Epiphyte load","Shoot density","Blade area")
 p_cpta_plot <- plot_model(fit_prev3.3,
            axis.labels = p_cpta_names,
            title="",
@@ -257,8 +257,8 @@ summary(fit_prev5)
 performance(fit_prev5)
 ## Visualize the best-fitting model output
 p_all_names <- c("Epiphyte load * Tidal height (upper)", "Shoot density * Tidal height (upper)", 
-                 "Leaf area * Tidal height (upper)","Tidal height (upper)",
-                 "Epiphyte load","Shoot density","Leaf area")
+                 "Blade area * Tidal height (upper)","Tidal height (upper)",
+                 "Epiphyte load","Shoot density","Blade area")
 p_all_plot <- plot_model(fit_prev5,
            axis.labels = p_all_names,
            title="",
@@ -408,8 +408,8 @@ performance(fit_sev3.4)
 
 ## Visualize the best-fitting model output
 s_cpta_names <- c("Epiphyte load * Tidal height (upper)",
-                  "Shoot density * Tidal height (upper)", "Leaf area * Tidal height (upper)",
-                  "Tidal height (upper)", "Cumulative SST anomaly","Epiphyte load","Shoot density","Leaf area")
+                  "Shoot density * Tidal height (upper)", "Blade area * Tidal height (upper)",
+                  "Tidal height (upper)", "Cumulative SST anomaly","Epiphyte load","Shoot density","Blade area")
 s_cpta_plot <- plot_model(fit_sev3.4,
            axis.labels = s_cpta_names,
            title="",
@@ -513,7 +513,7 @@ performance(fit_sev2.1)
 ## Visualize the best-fitting model output
 s_all_names <- c("Epiphyte load * Tidal height (upper)", "Shoot density * Tidal height (upper)", 
                  "Tidal height (upper)",
-                 "Epiphyte load","Shoot density","Leaf area")
+                 "Epiphyte load","Shoot density","Blade area")
 s_all_plot <- plot_model(fit_sev2.1,
            axis.labels = s_all_names,
            title="",

@@ -86,7 +86,7 @@ plot(E.prev~dat$BladeAreaMean)
 plot(E.prev~dat$CPTempAnomaly)
 
 ## Visualize the best-fitting model effect sizes
-prev_names <- c("Leaf area", "Cumulative SST anomaly")
+prev_names <- c("Blade area", "Cumulative SST anomaly")
 meadow_plot <- plot_model(fit_prev1,
                           type="std",
            axis.labels = prev_names,
@@ -222,7 +222,7 @@ Second note, the models with shoot density are worse by AIC than models with bla
 
 Use the same model as for prevalence (want to know if the same factors drive both).
 
-```{r sev_model_eval,echo=FALSE,fig.width=4,fig.height=3}
+```{r sev_model_eval,echo=FALSE,fig.width=4,fig.height=4}
 summary(fit_sev1)
 E.sev <- resid(fit_sev1,type='pearson')
 F.sev <- fitted(fit_sev1)
